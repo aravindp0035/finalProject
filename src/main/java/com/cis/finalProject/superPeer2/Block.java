@@ -1,4 +1,4 @@
-package superPeer1;
+package com.cis.finalProject.superPeer2;
 
 import java.security.MessageDigest;
 import java.util.Date;

@@ -1,60 +1,36 @@
-package com.cis.finalProject.superPeer1;
+package superPeer1;
 
+import java.security.MessageDigest;
 import java.util.Date;
+import java.util.List;
 
 public class Block {
-    private int index;
-    private String prevHash;
-    private String modelID;
-    private long timestamp;
-    private String hash;
+    public int index;
+    public String previousHash;
+    public String hash;
+    public List<Transaction> transactions;
+    public long timestamp;
 
-    // Constructor
-    public Block(int index, String prevHash, String modelID) {
+    public Block(int index, String previousHash, List<Transaction> transactions) {
         this.index = index;
-        this.prevHash = prevHash;
-        this.modelID = modelID;
+        this.previousHash = previousHash;
+        this.transactions = transactions;
         this.timestamp = new Date().getTime();
         this.hash = calculateHash();
     }
 
-    // Getters
-    public int getIndex() {
-        return index;
-    }
-
-    public String getPrevHash() {
-        return prevHash;
-    }
-
-    public String getModelID() {
-        return modelID;
-    }
-
-    public long getTimestamp() {
-        return timestamp;
-    }
-
-    public String getHash() {
-        return hash;
-    }
-
-    // Calculate hash method
     public String calculateHash() {
-        String dataToHash = "" + getIndex() + getPrevHash() + getModelID() + getTimestamp();
-        return applySha256(dataToHash);
+        String input = index + previousHash + Long.toString(timestamp) + transactions.toString();
+        return applySha256(input);
     }
 
-    // Utility method to apply SHA-256 hashing
-    private String applySha256(String input) {
+    public static String applySha256(String input) {
         try {
-            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(input.getBytes("UTF-8"));
             StringBuilder hexString = new StringBuilder();
             for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
+                hexString.append(String.format("%02x", b));
             }
             return hexString.toString();
         } catch (Exception e) {

@@ -1,4 +1,4 @@
-package superPeer2;
+package com.cis.finalProject.superPeer2;
 
 public class Transaction {
 	private String sender;
