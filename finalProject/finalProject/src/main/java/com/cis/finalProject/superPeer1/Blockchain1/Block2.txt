@@ -1,0 +1,459 @@
+# %% [markdown]
+# # Boston house price prediction
+
+# %% [markdown]
+# The problem that we are going to solve here is that given a set of features that describe a house in Boston, our machine learning model must predict the house price. To train our machine learning model with boston housing data, we will be using scikit-learn’s boston dataset.
+# 
+# In this dataset, each row describes a boston town or suburb. There are 506 rows and 13 attributes (features) with a target column (price).
+# https://archive.ics.uci.edu/ml/machine-learning-databases/housing/housing.names
+
+# %% [code]
+# Importing the libraries 
+import pandas as pd
+import numpy as np
+from sklearn import metrics
+import matplotlib.pyplot as plt
+import seaborn as sns
+%matplotlib inline
+
+# %% [code] {"scrolled":true}
+# Importing the Boston Housing dataset
+from sklearn.datasets import load_boston
+boston = load_boston()
+
+# %% [code]
+# Initializing the dataframe
+data = pd.DataFrame(boston.data)
+
+# %% [code]
+# See head of the dataset
+data.head()
+
+# %% [code]
+#Adding the feature names to the dataframe
+data.columns = boston.feature_names
+data.head()
+
+# %% [markdown]
+# CRIM per capita crime rate by town <br>
+# ZN proportion of residential land zoned for lots over 25,000 sq.ft. <br>
+# INDUS proportion of non-retail business acres per town <br>
+# CHAS Charles River dummy variable (= 1 if tract bounds river; 0 otherwise) <br>
+# NOX nitric oxides concentration (parts per 10 million) <br>
+# RM average number of rooms per dwelling <br>
+# AGE proportion of owner-occupied units built prior to 1940 <br>
+# DIS weighted distances to five Boston employment centres <br>
+# RAD index of accessibility to radial highways <br>
+# TAX full-value property-tax rate per 10,000usd <br>
+# PTRATIO pupil-teacher ratio by town <br>
+# B 1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town <br>
+# LSTAT % lower status of the population <br>
+
+# %% [markdown]
+# Each record in the database describes a Boston suburb or town.
+
+# %% [code]
+#Adding target variable to dataframe
+data['PRICE'] = boston.target 
+# Median value of owner-occupied homes in $1000s
+
+# %% [code]
+#Check the shape of dataframe
+data.shape
+
+# %% [code]
+data.columns
+
+# %% [code]
+data.dtypes
+
+# %% [code]
+# Identifying the unique number of values in the dataset
+data.nunique()
+
+# %% [code]
+# Check for missing values
+data.isnull().sum()
+
+# %% [code]
+# See rows with missing values
+data[data.isnull().any(axis=1)]
+
+# %% [code] {"scrolled":true}
+# Viewing the data statistics
+data.describe()
+
+# %% [code]
+# Finding out the correlation between the features
+corr = data.corr()
+corr.shape
+
+# %% [code]
+# Plotting the heatmap of correlation between features
+plt.figure(figsize=(20,20))
+sns.heatmap(corr, cbar=True, square= True, fmt='.1f', annot=True, annot_kws={'size':15}, cmap='Greens')
+
+# %% [code] {"scrolled":true}
+# Spliting target variable and independent variables
+X = data.drop(['PRICE'], axis = 1)
+y = data['PRICE']
+
+# %% [code]
+# Splitting to training and testing data
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size = 0.3, random_state = 4)
+
+# %% [markdown]
+# # Linear regression
+
+# %% [markdown]
+# #### Training the model
+
+# %% [code] {"scrolled":true}
+# Import library for Linear Regression
+from sklearn.linear_model import LinearRegression
+
+# Create a Linear regressor
+lm = LinearRegression()
+
+# Train the model using the training sets 
+lm.fit(X_train, y_train)
+
+# %% [code]
+# Value of y intercept
+lm.intercept_
+
+# %% [code]
+#Converting the coefficient values to a dataframe
+coeffcients = pd.DataFrame([X_train.columns,lm.coef_]).T
+coeffcients = coeffcients.rename(columns={0: 'Attribute', 1: 'Coefficients'})
+coeffcients
+
+# %% [markdown]
+# #### Model Evaluation
+
+# %% [code]
+# Model prediction on train data
+y_pred = lm.predict(X_train)
+
+# %% [code] {"scrolled":true}
+# Model Evaluation
+print('R^2:',metrics.r2_score(y_train, y_pred))
+print('Adjusted R^2:',1 - (1-metrics.r2_score(y_train, y_pred))*(len(y_train)-1)/(len(y_train)-X_train.shape[1]-1))
+print('MAE:',metrics.mean_absolute_error(y_train, y_pred))
+print('MSE:',metrics.mean_squared_error(y_train, y_pred))
+print('RMSE:',np.sqrt(metrics.mean_squared_error(y_train, y_pred)))
+
+# %% [markdown]
+# 𝑅^2 : It is a measure of the linear relationship between X and Y. It is interpreted as the proportion of the variance in the dependent variable that is predictable from the independent variable.
+# 
+# Adjusted 𝑅^2 :The adjusted R-squared compares the explanatory power of regression models that contain different numbers of predictors.
+# 
+# MAE : It is the mean of the absolute value of the errors. It measures the difference between two continuous variables, here actual and predicted values of y. 
+# 
+# MSE: The mean square error (MSE) is just like the MAE, but squares the difference before summing them all instead of using the absolute value. 
+# 
+# RMSE: The mean square error (MSE) is just like the MAE, but squares the difference before summing them all instead of using the absolute value. 
+# 
+# 
+# 
+# 
+# 
+
+# %% [code]
+# Visualizing the differences between actual prices and predicted values
+plt.scatter(y_train, y_pred)
+plt.xlabel("Prices")
+plt.ylabel("Predicted prices")
+plt.title("Prices vs Predicted prices")
+plt.show()
+
+# %% [code]
+# Checking residuals
+plt.scatter(y_pred,y_train-y_pred)
+plt.title("Predicted vs residuals")
+plt.xlabel("Predicted")
+plt.ylabel("Residuals")
+plt.show()
+
+# %% [markdown]
+# There is no pattern visible in this plot and values are distributed equally around zero. So Linearity assumption is satisfied
+
+# %% [code]
+# Checking Normality of errors
+sns.distplot(y_train-y_pred)
+plt.title("Histogram of Residuals")
+plt.xlabel("Residuals")
+plt.ylabel("Frequency")
+plt.show()
+
+# %% [markdown]
+# Here the residuals are normally distributed. So normality assumption is satisfied
+
+# %% [markdown]
+# #### For test data
+
+# %% [code]
+# Predicting Test data with the model
+y_test_pred = lm.predict(X_test)
+
+# %% [code]
+# Model Evaluation
+acc_linreg = metrics.r2_score(y_test, y_test_pred)
+print('R^2:', acc_linreg)
+print('Adjusted R^2:',1 - (1-metrics.r2_score(y_test, y_test_pred))*(len(y_test)-1)/(len(y_test)-X_test.shape[1]-1))
+print('MAE:',metrics.mean_absolute_error(y_test, y_test_pred))
+print('MSE:',metrics.mean_squared_error(y_test, y_test_pred))
+print('RMSE:',np.sqrt(metrics.mean_squared_error(y_test, y_test_pred)))
+
+# %% [markdown]
+# Here the model evaluations scores are almost matching with that of train data. So the model is not overfitting.
+
+# %% [markdown]
+# # Random Forest Regressor 
+
+# %% [markdown]
+# #### Train the model
+
+# %% [code]
+# Import Random Forest Regressor
+from sklearn.ensemble import RandomForestRegressor
+
+# Create a Random Forest Regressor
+reg = RandomForestRegressor()
+
+# Train the model using the training sets 
+reg.fit(X_train, y_train)
+
+# %% [markdown]
+# ### Model Evaluation
+
+# %% [code]
+# Model prediction on train data
+y_pred = reg.predict(X_train)
+
+# %% [code]
+# Model Evaluation
+print('R^2:',metrics.r2_score(y_train, y_pred))
+print('Adjusted R^2:',1 - (1-metrics.r2_score(y_train, y_pred))*(len(y_train)-1)/(len(y_train)-X_train.shape[1]-1))
+print('MAE:',metrics.mean_absolute_error(y_train, y_pred))
+print('MSE:',metrics.mean_squared_error(y_train, y_pred))
+print('RMSE:',np.sqrt(metrics.mean_squared_error(y_train, y_pred)))
+
+# %% [code]
+# Visualizing the differences between actual prices and predicted values
+plt.scatter(y_train, y_pred)
+plt.xlabel("Prices")
+plt.ylabel("Predicted prices")
+plt.title("Prices vs Predicted prices")
+plt.show()
+
+# %% [code]
+# Checking residuals
+plt.scatter(y_pred,y_train-y_pred)
+plt.title("Predicted vs residuals")
+plt.xlabel("Predicted")
+plt.ylabel("Residuals")
+plt.show()
+
+# %% [markdown]
+# #### For test data
+
+# %% [code]
+# Predicting Test data with the model
+y_test_pred = reg.predict(X_test)
+
+# %% [code]
+# Model Evaluation
+acc_rf = metrics.r2_score(y_test, y_test_pred)
+print('R^2:', acc_rf)
+print('Adjusted R^2:',1 - (1-metrics.r2_score(y_test, y_test_pred))*(len(y_test)-1)/(len(y_test)-X_test.shape[1]-1))
+print('MAE:',metrics.mean_absolute_error(y_test, y_test_pred))
+print('MSE:',metrics.mean_squared_error(y_test, y_test_pred))
+print('RMSE:',np.sqrt(metrics.mean_squared_error(y_test, y_test_pred)))
+
+# %% [markdown]
+# # XGBoost Regressor
+
+# %% [markdown]
+# #### Training the model
+
+# %% [code]
+# Import XGBoost Regressor
+from xgboost import XGBRegressor
+
+#Create a XGBoost Regressor
+reg = XGBRegressor()
+
+# Train the model using the training sets 
+reg.fit(X_train, y_train)
+
+# %% [markdown]
+# max_depth (int) – Maximum tree depth for base learners.
+# 
+# learning_rate (float) – Boosting learning rate (xgb’s “eta”)
+# 
+# n_estimators (int) – Number of boosted trees to fit.
+# 
+# gamma (float) – Minimum loss reduction required to make a further partition on a leaf node of the tree.
+# 
+# min_child_weight (int) – Minimum sum of instance weight(hessian) needed in a child.
+# 
+# subsample (float) – Subsample ratio of the training instance.
+# 
+# colsample_bytree (float) – Subsample ratio of columns when constructing each tree.
+# 
+# objective (string or callable) – Specify the learning task and the corresponding learning objective or a custom objective function to be used (see note below).
+# 
+# nthread (int) – Number of parallel threads used to run xgboost. (Deprecated, please use n_jobs)
+# 
+# scale_pos_weight (float) – Balancing of positive and negative weights.
+# 
+
+# %% [markdown]
+# ### Model Evaluation
+
+# %% [code]
+# Model prediction on train data
+y_pred = reg.predict(X_train)
+
+# %% [code]
+# Model Evaluation
+print('R^2:',metrics.r2_score(y_train, y_pred))
+print('Adjusted R^2:',1 - (1-metrics.r2_score(y_train, y_pred))*(len(y_train)-1)/(len(y_train)-X_train.shape[1]-1))
+print('MAE:',metrics.mean_absolute_error(y_train, y_pred))
+print('MSE:',metrics.mean_squared_error(y_train, y_pred))
+print('RMSE:',np.sqrt(metrics.mean_squared_error(y_train, y_pred)))
+
+# %% [code]
+# Visualizing the differences between actual prices and predicted values
+plt.scatter(y_train, y_pred)
+plt.xlabel("Prices")
+plt.ylabel("Predicted prices")
+plt.title("Prices vs Predicted prices")
+plt.show()
+
+# %% [code]
+# Checking residuals
+plt.scatter(y_pred,y_train-y_pred)
+plt.title("Predicted vs residuals")
+plt.xlabel("Predicted")
+plt.ylabel("Residuals")
+plt.show()
+
+# %% [markdown]
+# #### For test data
+
+# %% [code]
+#Predicting Test data with the model
+y_test_pred = reg.predict(X_test)
+
+# %% [code]
+# Model Evaluation
+acc_xgb = metrics.r2_score(y_test, y_test_pred)
+print('R^2:', acc_xgb)
+print('Adjusted R^2:',1 - (1-metrics.r2_score(y_test, y_test_pred))*(len(y_test)-1)/(len(y_test)-X_test.shape[1]-1))
+print('MAE:',metrics.mean_absolute_error(y_test, y_test_pred))
+print('MSE:',metrics.mean_squared_error(y_test, y_test_pred))
+print('RMSE:',np.sqrt(metrics.mean_squared_error(y_test, y_test_pred)))
+
+# %% [markdown]
+# # SVM Regressor
+
+# %% [code]
+# Creating scaled set to be used in model to improve our results
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()
+X_train = sc.fit_transform(X_train)
+X_test = sc.transform(X_test)
+
+# %% [markdown]
+# #### Train the model
+
+# %% [code] {"scrolled":true}
+# Import SVM Regressor
+from sklearn import svm
+
+# Create a SVM Regressor
+reg = svm.SVR()
+
+# %% [code]
+# Train the model using the training sets 
+reg.fit(X_train, y_train)
+
+# %% [markdown]
+# C : float, optional (default=1.0): The penalty parameter of the error term. It controls the trade off between smooth decision boundary and classifying the training points correctly.
+# 
+# kernel : string, optional (default='rbf’): kernel parameters selects the type of hyperplane used to separate the data. It must be one of 'linear', 'poly', 'rbf', 'sigmoid', 'precomputed’ or a callable.
+# 
+# degree : int, optional (default=3): Degree of the polynomial kernel function (‘poly’). Ignored by all other kernels.
+# 
+# gamma : float, optional (default='auto’): It is for non linear hyperplanes. The higher the gamma value it tries to exactly fit the training data set. Current default is 'auto' which uses 1 / n_features.
+# 
+# coef0 : float, optional (default=0.0): Independent term in kernel function. It is only significant in 'poly' and 'sigmoid'.
+# 
+# shrinking : boolean, optional (default=True): Whether to use the shrinking heuristic.
+
+# %% [markdown]
+# #### Model Evaluation
+
+# %% [code]
+# Model prediction on train data
+y_pred = reg.predict(X_train)
+
+# %% [code]
+# Model Evaluation
+print('R^2:',metrics.r2_score(y_train, y_pred))
+print('Adjusted R^2:',1 - (1-metrics.r2_score(y_train, y_pred))*(len(y_train)-1)/(len(y_train)-X_train.shape[1]-1))
+print('MAE:',metrics.mean_absolute_error(y_train, y_pred))
+print('MSE:',metrics.mean_squared_error(y_train, y_pred))
+print('RMSE:',np.sqrt(metrics.mean_squared_error(y_train, y_pred)))
+
+# %% [code]
+# Visualizing the differences between actual prices and predicted values
+plt.scatter(y_train, y_pred)
+plt.xlabel("Prices")
+plt.ylabel("Predicted prices")
+plt.title("Prices vs Predicted prices")
+plt.show()
+
+# %% [code]
+# Checking residuals
+plt.scatter(y_pred,y_train-y_pred)
+plt.title("Predicted vs residuals")
+plt.xlabel("Predicted")
+plt.ylabel("Residuals")
+plt.show()
+
+# %% [markdown]
+# #### For test data
+
+# %% [code]
+# Predicting Test data with the model
+y_test_pred = reg.predict(X_test)
+
+# %% [code]
+# Model Evaluation
+acc_svm = metrics.r2_score(y_test, y_test_pred)
+print('R^2:', acc_svm)
+print('Adjusted R^2:',1 - (1-metrics.r2_score(y_test, y_test_pred))*(len(y_test)-1)/(len(y_test)-X_test.shape[1]-1))
+print('MAE:',metrics.mean_absolute_error(y_test, y_test_pred))
+print('MSE:',metrics.mean_squared_error(y_test, y_test_pred))
+print('RMSE:',np.sqrt(metrics.mean_squared_error(y_test, y_test_pred)))
+
+# %% [markdown]
+# # Evaluation and comparision of all the models
+
+# %% [code]
+models = pd.DataFrame({
+    'Model': ['Linear Regression', 'Random Forest', 'XGBoost', 'Support Vector Machines'],
+    'R-squared Score': [acc_linreg*100, acc_rf*100, acc_xgb*100, acc_svm*100]})
+models.sort_values(by='R-squared Score', ascending=False)
+
+# %% [markdown]
+# ## Hence XGBoost Regression works the best for this dataset.****
+
+# %% [markdown]
+# ### Please upvote if you found this kernel useful! :) <br>
+# ### Feedback is greatly appreciated!

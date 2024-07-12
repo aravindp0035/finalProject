@@ -1,0 +1,204 @@
+# %% [code] {"jupyter":{"source_hidden":true}}
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the read-only "../input/" directory
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+# You can write up to 5GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session.
+
+# %% [code]
+# Import visualization packages
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+import seaborn as sns
+
+import warnings
+warnings.filterwarnings('ignore')
+
+# %% [markdown]
+# # 1. Import Dataset
+# 
+
+# %% [code]
+
+#  Load data set 
+df  = pd.read_csv('/kaggle/input/minihomeprices.csv')
+
+
+# show first five rows
+df.head()
+
+# %% [code]
+# show information about data set
+
+df.info()
+
+# %% [code]
+# Descriptiion of our data set
+
+df.describe().style.background_gradient(cmap='CMRmap')
+
+
+# %% [markdown]
+# # 2. Data Analysis
+
+# %% [code]
+#  to know how many null values
+
+df.isna().sum()
+
+# %% [markdown]
+# * we can see here only bedrooms has null values
+
+# %% [code]
+# fill null values with median value
+
+df['bedrooms'] = df['bedrooms'].fillna( df['bedrooms'].mean() )
+
+#  here we can use inplace=True as well.  both are valid for update data frame
+
+df.head()
+
+# %% [markdown]
+# # 3. Data Visualization
+
+# %% [code]
+# barploat show
+
+plt.figure(figsize=(10, 7))
+plt.title("Bedroom wise price increase.")
+
+sns.barplot('bedrooms', 'price', data=df)
+plt.xlabel('Bedrooms', )
+plt.ylabel('Price')
+plt.show()
+
+# %% [code]
+# Scatter plot
+plt.figure(figsize=(10, 5))
+
+sns.scatterplot('bedrooms', 'price',data=df)
+plt.title("Price vs Bedroom Scatter plot")
+
+plt.xlabel("House Bedrooms")
+plt.ylabel('House Price')
+plt.show()
+
+# %% [markdown]
+# * Here we can see bedrooms and price linearly related, House's Price increased if bedroom size will increase.
+
+# %% [code]
+plt.figure(figsize=(10, 7))
+
+sns.lmplot(x="bedrooms", y="price", data=df);
+plt.title("Price and bedroom wise line plot")
+plt.show()
+
+# %% [markdown]
+# # 4. Model Implementing
+
+# %% [code]
+# import model 
+from sklearn.linear_model import LinearRegression
+
+# %% [markdown]
+# * Now, Create model instance from LinearRegression class
+
+# %% [code]
+mdl = LinearRegression()
+
+# %% [markdown]
+# * Before fitting the model, create X and y for model fitting
+
+# %% [code]
+#  Set dependent and independent variables
+
+X = df.drop(['price'], axis=1)
+y = df['price']
+
+# %% [code]
+# Change bedrooms data type flaot to int
+
+df['bedrooms'] = df['bedrooms'].astype('int64')
+
+df.info()
+
+# %% [code]
+#  shows the variables
+print(X)
+print("-" * 25)
+print(y)
+
+# %% [markdown]
+# * Now, We are going to fitting the training and testing data
+
+# %% [code]
+#  Fitting Model
+
+mdl.fit( X, y  )
+
+# %% [markdown]
+# # Prediction 
+# 
+
+# %% [code]
+# Now custimize prediction testing
+
+mdl.predict([[ 4000, 2, 50 ]])
+# show house price here
+
+# %% [markdown]
+# - Show Coeficient
+
+# %% [code]
+mdl.coef_
+
+# %% [markdown]
+# - Show intecept
+
+# %% [code]
+mdl.intercept_
+
+# %% [code]
+#  know score 
+score = mdl.score( X, y )
+
+print(score * 100)
+
+# %% [markdown]
+# --- 
+# ---
+# 
+# <div class="text-center">
+#     <h1>That's it Guys,</h1>
+#     <h1>🙏</h1>
+#     
+#         
+#         I Hope you guys you like and enjoy it, and learn something interesting things from this notebook, 
+#         
+#         Even I learn a lots of things while I'm creating this notebook
+#     
+#         Keep Learning,
+#         Regards,
+#         Vikas Ukani.
+#     
+# </div>
+# 
+# ---
+# ---
+# 
+# <img src="https://static.wixstatic.com/media/3592ed_5453a1ea302b4c4588413007ac4fcb93~mv2.gif" align="center" alt="Thank You" style="min-height:20%; max-height:20%" width="90%" />
+# 
+# 

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header, footer {
+            background-color: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+        }
+        .container {
+        position: relative;
+        left:50%;
+            display: none;
+            margin-top: 10px;
+            margin-bottom:10px;
+            max-width: 300px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+            transform: translatex(-50%);
+            padding: 20px 10px;
+        }
+        .container input[type="text"] {
+            width: calc(100% - 40px);
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-right: 5px;
+            margin-left: 5px;
+        }
+        .container button {
+            padding: 10px 20px;
+            position:relative;
+            left:40%;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .container button:hover {
+            background-color: #0056b3;
+        }
+        #profile-summary {
+            background: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            max-width: 600px;
+        }
+        #profile-summary img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin-bottom: 20px;
+        }
+        .header-buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .header-buttons button {
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .header-buttons button:hover {
+            background-color: #0056b3;
+        }
+        #key-metrics {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            padding: 0 20px;
+        }
+        .metric {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 45%;
+            text-align: center;
+        }
+        #recent-activity {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin: 20px;
+            padding: 20px;
+        }
+        #recent-activity h2 {
+            margin-top: 0;
+        }
+        #recent-activity ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #recent-activity li {
+            padding: 10px 0;
+            border-bottom: 1px solid #ccc;
+        }
+        #recent-activity li:last-child {
+            border-bottom: none;
+        }
+        footer {
+            background-color: #34495e;
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Welcome to Your Dashboard</h1>
+    </header>
+    <div id="profile-summary">
+      
+        <h2>Welcome back, Super Peer!</h2>
+        <div class="header-buttons">
+            <button type="button" onclick="window.location.href = '/search';">Search Classifier</button>
+            <button id="requestButton" type="button" >Request Block</button>
+            <button type="button" onclick="window.location.href = '/add';">Add New Block</button>
+        </div>
+    </div>
+    <div class="container" id="requestContainer">
+        <input type="text" id="blockRequestInput" placeholder="Enter Model name">
+        <button id="submitRequestButton">Submit</button>
+    </div>
+    <div id="key-metrics">
+        <div class="metric">
+            <h2>Total number of blocks</h2>
+            <p>5</p>
+        </div>
+        <div class="metric">
+            <h2>Number of Transactions</h2>
+            <p>27</p>
+        </div>
+    </div>
+    <div id="recent-activity">
+        <h2>Recent Activity</h2>
+        <ul>
+            <li>Broadcasted to all the peers</li>
+            <li>Recent login is at Thursday, 7pm</li>
+            <li>Received approval for new block</li>
+        </ul>
+    </div>
+    <footer>
+        <p>Dashboard © 2024</p>
+    </footer>
+    <script>
+        document.getElementById("requestButton").addEventListener("click", function() {
+            // Show the container
+            document.getElementById("requestContainer").style.display = "block";
+        });
+
+        document.getElementById("submitRequestButton").addEventListener("click", function() {
+            // Get the input value
+            const requestText = document.getElementById("blockRequestInput").value;
+
+            // Prepare data for the request (if needed)
+            const requestData = {
+                request: requestText
+            };
+
+            // Send POST request (replace "/requestBlockEndpoint" with your actual endpoint)
+            fetch("/requestBlockEndpoint", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Handle successful response
+                    console.log("Block request sent successfully!");
+                    // You can perform any additional actions here, like showing a success message to the user
+                } else {
+                    // Handle error response
+                    console.error("Failed to send block request:", response.status);
+                    // You can display an error message to the user if needed
+                }
+            })
+            .catch(error => {
+                // Handle fetch error
+                console.error("Error sending block request:", error);
+                // You can display an error message to the user if needed
+            });
+        });
+    </script>
+</body>
+</html>

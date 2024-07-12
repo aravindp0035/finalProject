@@ -1,0 +1,24 @@
+package com.cis.finalProject.regularPeer;
+
+public class Transaction {
+	private String sender;
+    private String recipient;
+    
+
+    public Transaction(String sender, String recipient) {
+        this.sender = sender;
+        this.recipient = recipient;
+       
+    }
+
+    
+    public String getSender() {
+        return sender;
+    }
+
+    public String getRecipient() {
+        return recipient;
+    }
+
+   
+}

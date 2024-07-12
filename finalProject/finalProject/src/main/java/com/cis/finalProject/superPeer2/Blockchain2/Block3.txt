@@ -1,0 +1,812 @@
+# %% [code] {"_kg_hide-output":false,"execution":{"iopub.status.busy":"2022-07-16T13:19:33.945223Z","iopub.execute_input":"2022-07-16T13:19:33.94559Z","iopub.status.idle":"2022-07-16T13:19:44.248343Z","shell.execute_reply.started":"2022-07-16T13:19:33.945559Z","shell.execute_reply":"2022-07-16T13:19:44.247137Z"}}
+!pip install mllibs
+
+# %% [code] {"_kg_hide-output":true,"_kg_hide-input":true}
+from IPython.core.display import display, HTML, Javascript
+
+color_map = ['#FFFFFF','#FF5733']
+
+prompt = color_map[-1]
+main_color = color_map[0]
+strong_main_color = color_map[1]
+custom_colors = [strong_main_color, main_color]
+
+css_file = '''
+div #notebook {
+background-color: white;
+line-height: 20px;
+}
+
+#notebook-container {
+%s
+margin-top: 2em;
+padding-top: 2em;
+border-top: 4px solid %s;
+-webkit-box-shadow: 0px 0px 8px 2px rgba(224, 212, 226, 0.5);
+    box-shadow: 0px 0px 8px 2px rgba(224, 212, 226, 0.5);
+}
+
+div .input {
+margin-bottom: 1em;
+}
+
+.rendered_html h1, .rendered_html h2, .rendered_html h3, .rendered_html h4, .rendered_html h5, .rendered_html h6 {
+color: %s;
+font-weight: 600;
+}
+
+div.input_area {
+border: none;
+    background-color: %s;
+    border-top: 2px solid %s;
+}
+
+div.input_prompt {
+color: %s;
+}
+
+div.output_prompt {
+color: %s; 
+}
+
+div.cell.selected:before, div.cell.selected.jupyter-soft-selected:before {
+background: %s;
+}
+
+div.cell.selected, div.cell.selected.jupyter-soft-selected {
+    border-color: %s;
+}
+
+.edit_mode div.cell.selected:before {
+background: %s;
+}
+
+.edit_mode div.cell.selected {
+border-color: %s;
+
+}
+'''
+
+def to_rgb(h): 
+    return tuple(int(h[i:i+2], 16) for i in [0, 2, 4])
+
+main_color_rgba = 'rgba(%s, %s, %s, 0.1)' % (to_rgb(main_color[1:]))
+open('notebook.css', 'w').write(css_file % ('width: 95%;', main_color, main_color, main_color_rgba, 
+                                            main_color,  main_color, prompt, main_color, main_color, 
+                                            main_color, main_color))
+
+def nb(): 
+    return HTML("<style>" + open("notebook.css", "r").read() + "</style>")
+nb()
+
+# %% [code] {"_kg_hide-input":true}
+import os,sys,warnings
+if not sys.warnoptions:    
+    warnings.simplefilter('ignore')
+    
+import numpy as np
+from numpy.linalg import pinv,inv
+import pandas as pd
+import geopandas as gpd
+import matplotlib.pyplot as plt
+import seaborn as sns;sns.set(style='whitegrid')
+%matplotlib inline
+
+import geoplot as gplt
+import geoplot.crs as gcrs
+import mapclassify as mc
+
+from sklearn.dummy import DummyRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.base import BaseEstimator, RegressorMixin,ClassifierMixin
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split,cross_val_score,GridSearchCV
+from sklearn.pipeline import Pipeline
+from sklearn.neighbors import KNeighborsRegressor
+from mllibs.bl_regressor import BR
+pi = 4.0*np.arctan(1.0)
+
+color1 = 'darkviolet'
+color2 = 'indigo'
+
+# %% [markdown]
+# ![](https://i.imgur.com/rpOD15e.jpg)
+#   
+# # <div style="padding: 30px;color:white;margin:10;font-size:60%;text-align:left;display:fill;border-radius:10px;background-color:#FFFFFF;overflow:hidden;background-color:#FF5733"><b><span style='color:#FFFFFF'>1 |</span></b> <b>INTRODUCTION</b></div>
+# 
+# <div style="color:white;display:fill;border-radius:8px;font-size:100%; letter-spacing:1.0px;"><p style="padding: 5px;color:white;text-align:left;"><b><span style='color:#FF5733'>PROBLEM STATEMENT</span></b></p></div>
+# 
+# - There are a large number of factors that can affect the value of a house property (eg. location, size, condition, time), these factors can change quite substantially from one property to another
+# - The housing market itself is quite a volatile industry, and is quite dependent on demand and supply fluctuations, not to even mention economic factors sch as interest rates & inflation, so its quite a challenge to predict the price variation over time
+# - It's also quite challenging to predict housing prices due to the limited data that is available, most datasets contain a limited number of features related to each property, such is why feature engineering is quite important
+# - As a result, it is generally quite difficult to accurately predict property prices that take into account all the factors that influence it
+# - The California housing dataaset contains different house related attributes for properties located in California
+# 
+# <div style="color:white;display:fill;border-radius:8px;font-size:100%; letter-spacing:1.0px;"><p style="padding: 5px;color:white;text-align:left;"><b><span style='color:#FF5733'>STUDY AIM</span></b></p></div>
+# 
+# 
+# - The aim is to model is to predict the `median_house_value` which is our **target variable**
+# - Overcome missing data with a basic **unsupervised learning** data imputation
+# - Identification of **outliers** in a dataset
+# - Understand how to turn a simple model into your own **sklearn** comparible class, our aim won't be to create the most perfect model
+# 
+# <div style="color:white;display:fill;border-radius:8px;font-size:100%; letter-spacing:1.0px;"><p style="padding: 5px;color:white;text-align:left;"><b><span style='color:#FF5733'>NOTEBOOK COVERS</span></b></p></div>
+# 
+# 
+# - Introduction to basic ML principles such as `missing data`, `scaling`, `feature engineering`, `outliers`,
+# - A basic introduction to `sklearn` compatible classes,`model exploration` & `model modification` in an attempt to  improve our model
+# 
+# <div style="color:white;display:fill;border-radius:8px;font-size:100%; letter-spacing:1.0px;"><p style="padding: 5px;color:white;text-align:left;"><b><span style='color:#FF5733'>MODEL SELECTION</span></b></p></div>
+# 
+# We'll use an existing model; `Bayesian Linear Regression` in class structure that can be used with sklearn's `Pipeline` and `cross validation` options, so we can use it here. <br> 
+
+# %% [markdown]
+# 
+# # <div style="padding: 30px;color:white;margin:10;font-size:60%;text-align:left;display:fill;border-radius:10px;background-color:#FFFFFF;overflow:hidden;background-color:#FF5733"><b><span style='color:#FFFFFF'>2 |</span></b> <b>DATA PREPARATION</b></div>
+# 
+# ### <b><span style='color:#FF5733'> 2.1 |</span> Loading the dataset </b>
+# 
+# - df.info(),describe(),head() are probably one of the first things we might want to inspect having a pandas dataframe; showing feature names, limits/stats and and a few first columns respectively, to get a some initial impression of the data
+# - I have made some minor adjustment to the [original dataset](https://www.kaggle.com/camnugent/california-housing-prices) and pulled out some random data from all but two coordinate features, so we can do some data imputation, the dataset is located below, even though its not made public.
+
+# %% [code]
+# load the dataset
+df = pd.read_csv('/kaggle/input/calihouse/housing.csv')
+
+# %% [code]
+df.info()
+
+# %% [code]
+df.head()
+
+# %% [markdown]
+# - `.info()` is perhaps a good starting point, having read & loaded data into a pandas dataframe
+# - `RangeIndex` tells us the maximum loaded data instane, thus we can quickly identify columns w/ missing data
+# - `pandas` can read a wide range of data types; so `Dtype` information is very handy to know
+# - `.head()` is a nice way to peak at our dataset, `.tail` also is a quick way to scroll to the bottom of the dataset
+
+# %% [code]
+# Let's show all columns with missing data as well:
+df[df.isnull().any(axis=1)] # any missing data in columns
+
+# %% [markdown]
+# ### <b><span style='color:#FF5733'> 2.2 |</span> Data imputation </b>
+# 
+# - We can note that we have a number of features with some missing data, but not too many instances overall (257/20640);
+# - Lets try an `Unsupervised Learning (UL)` approach based on the `kNN` model, we can use the function below and pass a dataframe to generated an imputed dataframe
+# 
+# #### **<span style='color:#FF5733'>kNN Unsupervised Learning Imputation</span>**
+# - Function to impuse missing data using an unsupervised model.
+
+# %% [code] {"_kg_hide-input":false}
+from sklearn.neighbors import KNeighborsRegressor
+
+# function that imputes a dataframe 
+def impute_knn(df):
+    
+    ''' inputs: pandas df containing feature matrix '''
+    ''' outputs: dataframe with NaN imputed '''
+    # imputation with KNN unsupervised method
+
+    # separate dataframe into numerical/categorical
+    ldf = df.select_dtypes(include=[np.number])           # select numerical columns in df
+    ldf_putaside = df.select_dtypes(exclude=[np.number])  # select categorical columns in df
+    # define columns w/ and w/o missing data
+    cols_nan = ldf.columns[ldf.isna().any()].tolist()         # columns w/ nan 
+    cols_no_nan = ldf.columns.difference(cols_nan).values     # columns w/o nan 
+
+    for col in cols_nan:                
+        imp_test = ldf[ldf[col].isna()]   # indicies which have missing data will become our test set
+        imp_train = ldf.dropna()          # all indicies which which have no missing data 
+        model = KNeighborsRegressor(n_neighbors=5)  # KNR Unsupervised Approach
+        knr = model.fit(imp_train[cols_no_nan], imp_train[col])
+        ldf.loc[df[col].isna(), col] = knr.predict(imp_test[cols_no_nan])
+    
+    return pd.concat([ldf,ldf_putaside],axis=1)
+
+# %% [code]
+# Call function that imputes missing data
+df2 = impute_knn(df)
+# looks like we have a full feature matrix
+df2.info()
+
+# %% [markdown]
+# ### <b><span style='color:#FF5733'> 2.3 |</span> Creating a hold-out set</b>
+# 
+# - Thorough of the entire dataset & not having the availability of new data is undesirable. 
+# - We want to reserve some data, & use it to see how good the model is at prediction on unseen data, so lets create it using `train_test_split` 
+# 
+# `trdata` : Training Data Subset (Let's inspect the data as if we only had this data this)<br>
+# `tedata` : Test Data Subset (Use this subset for model evaluation)
+
+# %% [code]
+# 70/30 Split should do
+trdata,tedata = train_test_split(df2,test_size=0.3,random_state=43)
+
+# %% [markdown]
+# # <div style="padding: 30px;color:white;margin:10;font-size:60%;text-align:left;display:fill;border-radius:10px;background-color:#FFFFFF;overflow:hidden;background-color:#FF5733"><b><span style='color:#FFFFFF'>3 |</span></b> <b>EXPLORATORY DATA ANALYSIS</b></div>
+# 
+# 
+# We want to know a little more about our data, a simple data exploration approach is conducted here
+# 
+# ### <b><span style='color:#FF5733'> 3.1 |</span> Univariate histograms</b>
+# 
+# Lets look at our data distribution, using `univariate analysis` (analysis of 1 variable).
+# What we might look for in histograms:
+# 
+# - Data distribution ( certain models prefer less skewed distributions ) <br>
+# - Outliers ( Low Noise Assumption can be detremental to model performance ) <br>
+# - Odd patterns in data ( Data abnormalities also affect model performance ) <br>
+# - Axis Scale ( Feature scale values can affect a models performance )
+
+# %% [code]
+trdata.hist(bins=60, figsize=(15,9),color=color1);plt.show()
+
+# %% [markdown]
+# #### **<span style='color:#FF5733'>Odd Patterns & Outliers</span>**
+# Data distributions which slightly sticks out:
+# - On first impression, a few outlier (inconsistent with entire set) groups are present in our data; possibly due to the way in which the data was sampled ( 'housing_median_age' & 'median_house_value' )
+# - `House_median_age` is one possible feature with such outliers.  Also having a lot of local peaks (all are quite gradual) but one really odd peak at the maximum value stands out. It has some slight discontinuity in data (which becomes visible with the adjustment of bins)
+# - Feature `Median_house_value` has an odd peak at its maximum value (around 500k), which could be an outlier.
+# 
+# #### **<span style='color:#FF5733'>Less Noticeable Outliers</span>**
+# - We have quite a few skewed (less centralised) data distributions, 6 features have such distributions, which is quite a lot and slightly concerning since we are going to use a relatively simple model. 
+# - The range of the x axis for some of these features is quite broad (eg. `population`), indicating we have quite a few outliers, but unlike the first two, we can apply `transformation` to features and attempt to correct it.
+# - Population, total_bedrooms and total_rooms represent somewhat connected things, also have similar distribution which is skewed t owards smaller values.
+# 
+# <br>
+# 
+# ### <b><span style='color:#FF5733'> 3.2 |</span> Bivariate correlation matrix</b>
+# 
+# - Bivariate (Two Feature) Two-Feature relation ; `correlation meature`
+# - Very fast way to understand something about the dataset.
+# - Correlation matrix contains only information about the linear similarity of two feature relations
+# 
+# What we might look for:
+# 
+# - Often emphasised that `too highly` or `too lowly correlated` features should be dropped
+# - Any signs of nonlinearity in the dataset, such as a fair few low linear correlation values
+# - High correlation values between multiple features could indicate that features may represent similar things
+
+# %% [code] {"_kg_hide-input":true}
+''' Function to plot correlation of features '''
+def corrMat(df,id=False):
+    
+    corr_mat = df.corr().round(2)
+    f, ax = plt.subplots(figsize=(6,6))
+    mask = np.zeros_like(corr_mat,dtype=np.bool)
+    mask[np.triu_indices_from(mask)] = True
+    sns.heatmap(corr_mat,mask=mask,vmin=-1,vmax=1,center=0, 
+                cmap='plasma',square=False,lw=2,annot=True,cbar=False);plt.show()  
+
+# %% [code]
+corrMat(trdata) # plot masked numpy correlation matrix
+
+# %% [markdown]
+# - Target variable `median_house_value` is very mildly correlated to all but one feature here: `median_income`, so one might outline this as an important feature.
+# - A correlation of -0.02 & -0.05 (`population`/`longitude`) to the target variable `median_house_value` might be worth dropping, but they might not be. In fact, a low value isn't exactly a reason to drop a feature. It could simply imply the data is spread quite a lot, which is a strong indicator of nonlinearity. 
+# - It is often advised to drop such features, especially for less complex models, as the model probably won't be able to pick up on one feature with such nonlinearity, let alone multiple.
+# - It's possible to plot a shifted matrix, which looks a little nicer, [code can be found here](https://www.kaggle.com/shtrausslearning/heart-disease-gaussian-process-ensemble)
+# 
+# <br>
+# 
+# ### <b><span style='color:#FF5733'> 3.3 |</span> Bivariate scattered data</b>
+# 
+# 
+# - Pairplots/Scatter Matrices are very insightful & can be used to find interesting scatter platterns in `bivariate` (two feature data plots) relations
+# - Scatter plots allow the addition of `color` labelling, however its often quite difficult to distinguish between `color` labels in a scattered matrix
+# 
+# What we might look for:
+#     
+# - Irregular two feature patterns or outliers ( multiple features give a clearer picture of outlier )
+# - Two dimensional Data clusters (using KDE approximation)
+# - Two feature linear correlation value visualisation in two dimensional space ( is the data sorted linearly or completly random )
+
+# %% [code] {"_kg_hide-input":true}
+''' Draw a Bivariate Seaborn Pairgrid /w KDE density w/ '''
+def snsPairGrid(df):
+
+    ''' Plots a Seaborn Pairgrid w/ KDE & scatter plot of df features'''
+    g = sns.PairGrid(df,diag_sharey=False)
+    g.fig.set_size_inches(14,13)
+    g.map_diag(sns.kdeplot, lw=2) # draw kde approximation on the diagonal
+    g.map_lower(sns.scatterplot,s=15,edgecolor="k",linewidth=1,alpha=0.4) # scattered plot on lower half
+    g.map_lower(sns.kdeplot,cmap='plasma',n_levels=10) # kde approximation on lower half
+    plt.tight_layout()
+
+# %% [code]
+# Seaborn get a little slow, let's plot some interesting features
+tlist = ['median_income','total_rooms','housing_median_age','latitude','median_house_value','population']
+snsPairGrid(trdata[tlist]) 
+
+# %% [markdown]
+# #### **<span style='color:#FF5733'>Relating to "Median_House_Value"</span>**
+# 
+# - `median_house_value` and `median_income` relation looks quite linear, with a fair bit of deviation normal to the linear line, we can also note a visible upper limit for all values of 'median_income', which in two dimensions, definitely looks out of place.
+# - In `median_house_age` vs `median_house_value` relation, it looks like the data is completely spread out all over the place; KDE helping the identification of two peaks roughtly 20 years appart, perhaps these peaks are associated with increasing affordability (given they are concentrated in the lower half)
+# - We an note an additional peak near the peak values of both features as well. The relation is very nonlinear, being scattered everywhere, having data in almost all parts of the graph.
+# - `median_house_value` & `total_rooms`,`population` seem like quite complex features to model, KDE suggests it's heavily concentrated at lower values for the two, with a fair bit at larger values & a lot of data outside the main clusters, classifiable as `outliers`.
+# - Many of our features have quite different axis scales, higher values might be interpreted as more important, so scaling should definitely be considered.
+# 
+# <br>
+# 
+# ### <b><span style='color:#FF5733'> 3.4 |</span> Geospatial multivariate data</b>
+# 
+# - `Multivariate` visualisating can be even more insightful than `bivariate`. Adding 'hue'/colour to scattered data gives the data an extra dimension we can interpred provided there is minimal overlap <br>
+# - Geographic plotting is one form of such visualisation. It would be interesting to understand how geography influences various features. 
+# - We're dealing with geographical data, so [geopandas](https://geopandas.org/) is quite useful, so is `folium` & plotly
+# - Other modules you might like to add (mainly for 3D) [k3d](https://github.com/K3D-tools/K3D-jupyter/) and [pyvista](https://github.com/pyvista/pyvista) are awesome for multivariate visualisation too.
+
+# %% [code] {"_kg_hide-input":true}
+''' Plot Two Geopandas Plots Side by Side '''
+# defining a simple plot function, input list containing features of names found in dataframe
+def plotTwo(df,lst):
+    
+    # load california from module, common for all plots
+    cali = gpd.read_file(gplt.datasets.get_path('california_congressional_districts'))
+    cali = cali.assign(area=cali.geometry.area)
+    
+    # Create a geopandas geometry feature; input dataframe should contain .longtitude, .latitude
+    gdf = gpd.GeoDataFrame(df,geometry=gpd.points_from_xy(df.longitude,df.latitude))
+    proj=gcrs.AlbersEqualArea(central_latitude=37.16611, central_longitude=-119.44944) # related to view
+
+    ii=-1
+    fig,ax = plt.subplots(1,2,figsize=(21,6),subplot_kw={'projection': proj})
+    for i in lst:
+
+        ii+=1
+        tgdf = gdf.sort_values(by=i,ascending=True) 
+        gplt.polyplot(cali,projection=proj,ax=ax[ii]) # the module already has california 
+        gplt.pointplot(tgdf,ax=ax[ii],hue=i,cmap='plasma',legend=True,alpha=1.0,s=3) # 
+        ax[ii].set_title(i)
+
+    plt.tight_layout()
+    plt.subplots_adjust(wspace=-0.5)
+
+# %% [code]
+trdata.info()
+
+# %% [code]
+# Call function that plots two geopandas plots 
+plotTwo(trdata,['population','median_income'])
+plotTwo(trdata,['housing_median_age','median_house_value'])
+del trdata['geometry'] # not useful for anything other than gpd visualisation
+
+# %% [markdown]
+# - For our target variable, `median_house_value`, just by looking at these graphs, one could immediately note some patterns; `geography(location)` and `median_house_income` show clear relation; generally increasing the closer you get to the two main clusters, so these two features would probably be important.
+# 
+# - `Housing_median_age` for a lot of regions is also strongly correlated to the target variable, but in many regions it isn't (slightly more inland), so its not so clear cut. The relation is probably just nonlinear. Recalling the pairplot, we saw quite a lot of spread in the data, however one could notice two main clusters from that graph, which showed some some linearity aspect.
+# 
+# - `Population` is a little more tricky, its somewhat correlated, although we have a few outliers (not even visible on the univariate histogram) which make it harder see a relation as the values are more bunched up in the < 10k group, but there does tend to be a relation though, as indicated by the `correlation` value.
+
+# %% [markdown]
+# # <div style="padding: 30px;color:white;margin:10;font-size:60%;text-align:left;display:fill;border-radius:10px;background-color:#FFFFFF;overflow:hidden;background-color:#FF5733"><b><span style='color:#FFFFFF'>4 |</span></b> <b>REVIEWING OUTLIERS</b></div>
+# 
+# From pairplot data we noted the existence of outliers, this is more of a manual process of identification, you might be interested in an automated appraoch using EllipticEnvelope, an example found in [Chris Albon's Cookbook](https://chrisalbon.com/machine_learning/preprocessing_structured_data/detecting_outliers/) 
+# 
+# #### **<span style='color:#FF5733'>Outlier @ housing_median_age == 52</span>**
+# We inspected the dataset histogram, and noted a rather odd cluster at a value of 52, 1D data doesn't quite tell the entire story, certainly our histogram data transitions quite steadily, but perhaps during this year it was very affordable. 2D pairplots tend to show this data as being somewhat more like a constraint more than anything, looking very odd compared to the rest of the data (lines in data). Overall, it's not entirely conclusive.
+# 
+# #### **<span style='color:#FF5733'>Outlier @ median_house_value == 500,001</span>**
+# Unlike housing_median_age, it is very doubtful that the outlier spike is not a categorically defined summation of all cases above the maximum median_house_value, let's remove this subset, and keep the other.
+# 
+# #### **<span style='color:#FF5733'>Less noticable outliers</span>**
+# Having just plotted `population` in a `multivariate` plot, we would have noted how the scale created values that are barely visible to the eye, in fact, a model with poorly allocated weights to these outliers can sevely degrade in accuracy, one counter to these outliers is a weight function approach, such as `Inverse Distance Weighting (IDW)` in models such as `Weighted Least Sqaures (WLS)` or `Covariance Functions` in [`Gaussian Process Models`](https://www.kaggle.com/andreikozlov/uci-airfoil-noise-prediction), `BR()` unfortunately doesn't have this functionality, so we'll have to attempt a common approach known as `skewness correction` via feature transformation. I thought we'd give it a go and attempt to implement these functions into the `BR()` model as well, why not.
+# 
+# - Let's remove the outlier for `median_house_value` by simply selecting the maximum (which works here)
+
+# %% [code]
+# trdata_upd : training data w/ removed outliers
+maxval2 = trdata['median_house_value'].max() # get the maximum value
+trdata_upd = trdata[trdata['median_house_value'] != maxval2] 
+tedata_upd = tedata[tedata['median_house_value'] != maxval2]
+trdata_upd.hist(bins=60, figsize=(15,9),color=color1);plt.show() # looks like its completely removed.
+
+# %% [markdown]
+# # <div style="padding: 30px;color:white;margin:10;font-size:60%;text-align:left;display:fill;border-radius:10px;background-color:#FFFFFF;overflow:hidden;background-color:#FF5733"><b><span style='color:#FFFFFF'>5 |</span></b> <b>FEATURE ENGINEERING</b></div>
+# 
+# - Creation and modification of the feature matrix data,`Feature Engineering` is quite important and quite a cyclic process, we want to input a feature matrix that will help teach a model something useful.
+# - We want to make sure we feed the model data that is most relevant to the prediction of a target variable, perhaps as less overlapping as possible as well. 
+# - Features with very high correlation teach a model similar things, multiple times, maybe consider combing them and dropping the others. 
+# 
+# #### **<span style='color:#FF5733'>Some things we could try:</span>**
+# 
+# - In this problem, we don't have a lot of features to play around with, but we noted that we have a few which are quite similar. Let's create a relatively simple combination from them, and drop the rest. 
+# - We'll also create a feature which combines both coordinates as the we saw in the multivariate data, there is a relation that changes quite steadily on the diagonal (moving closer to the ocean and inland).
+
+# %% [code]
+# Make a feature that contains both longtitude & latitude
+trdata_upd['diag_coord'] = (trdata_upd['longitude'] + trdata_upd['latitude'])         # 'diagonal coordinate', works for this coord
+trdata_upd['bedperroom'] = trdata_upd['total_bedrooms']/trdata_upd['total_rooms']     # feature w/ bedrooms/room ratio
+corrMat(trdata_upd)
+# update test data as well
+tedata_upd['diag_coord'] = (tedata_upd['longitude'] + tedata_upd['latitude'])
+tedata_upd['bedperroom'] = tedata_upd['total_bedrooms']/tedata_upd['total_rooms']     # feature w/ bedrooms/room ratio
+
+# %% [code]
+# lets plot them as well
+plotTwo(trdata_upd,['diag_coord','median_house_value'])
+plotTwo(trdata_upd,['bedperroom','median_house_value'])
+del trdata_upd['geometry']  # remove gpd geometry features
+
+# %% [markdown]
+# - We can note a clear correlation for `diag_coord` & our target variable from the map plot  (inverse correlation)
+# - On the other hand, `bedperroom` was not not as illuminating as hoped, it's still one of the more highly correlated features though as indicated in the correlation matrix
+
+# %% [markdown]
+# # <div style="padding: 30px;color:white;margin:10;font-size:60%;text-align:left;display:fill;border-radius:10px;background-color:#FFFFFF;overflow:hidden;background-color:#FF5733"><b><span style='color:#FFFFFF'>6 |</span></b> <b>DEFINING A CUSTOM CLASS ML MODEL</b></div>
+# 
+# - We've done some data visualisation, cleaned up outliers, and have a ready set of feature we'll used to train a model
+# - All evaluation functions use the simpler automated `hyperparameter` tuning approach, however I've also included the grid search in case that would be of use.
+# 
+# 
+# ### <b><span style='color:#FF5733'> 6.1 |</span> Bayesian linear regression</b>
+# 
+# - We've decided to use the `Bayesian Linear Regression` model in this problem. 
+# - You can try replacing the current model with more advanced ones, the <b>explanation</b> & <b>code</b> are <b>hidden below</b>.
+# 
+# A detailed and inisightful explanation of <b>Bayesian Linear Regression</b> is taken from [Github](https://notebooks.gesis.org/binder/jupyter/user/krasserm-bayesi-achine-learning-z51afiie/notebooks/bayesian_linear_regression.ipynb)
+# 
+# #### **<span style='color:#FF5733'>Prior and posterior distribution</span>**
+# 
+# For a Bayesian treatment of linear regression we need a prior probability distribution over model parameters $\mathbf{w}$. For reasons of simplicity, we will use an isotropic Gaussian distribution over parameters $\mathbf{w}$ with zero mean:
+# 
+# $$
+# p(\mathbf{w} \lvert \alpha) = \mathcal{N}(\mathbf{w} \lvert \mathbf{0}, \alpha^{-1}\mathbf{I}) \tag{8}
+# $$
+# 
+# An isotropic Gaussian distribution has a diagonal covariance matrix where all diagonal elements have the same variance $\alpha^{-1}$ ($\alpha$ is the precision of the prior). A zero mean favors small(er) values of parameters $w_j$ a priori. The prior is [conjugate](https://en.wikipedia.org/wiki/Conjugate_prior) to the likelihood $p(\mathbf{t} \lvert \mathbf{w}, \beta)$ meaning that the posterior distribution has the same functional form as the prior i.e. is also a Gaussian. In this special case, the posterior has an analytical solution with the following sufficient statistics 
+# 
+# $$
+# \begin{align*}
+# \mathbf{m}_N &= \beta \mathbf{S}_N \boldsymbol\Phi^T \mathbf{t}  \tag{9} \\
+# \mathbf{S}_N^{-1} &= \alpha\mathbf{I} + \beta \boldsymbol\Phi^T \boldsymbol\Phi  \tag{10}
+# \end{align*}
+# $$
+# 
+# $(9)$ is the mean vector of the posterior and $(10)$ the inverse covariance matrix (= precision matrix). Hence, the posterior distribution can be written as
+# 
+# $$
+# p(\mathbf{w} \lvert \mathbf{t}, \alpha, \beta) = \mathcal{N}(\mathbf{w} \lvert \mathbf{m}_N, \mathbf{S}_N) \tag{11}
+# $$
+# 
+# For the moment, we assume that the values of $\alpha$ and $\beta$ are known. Since the posterior is proportional to the product of likelihood and prior, the log of the posterior distribution is proportional to the sum of the log likelihood and the log of the prior
+# 
+# $$
+# \log p(\mathbf{w} \lvert \mathbf{t}, \alpha, \beta) = 
+# -\beta E_D(\mathbf{w}) - \alpha E_W(\mathbf{w}) + \mathrm{const.} \tag{12}
+# $$
+# 
+# where $E_D(\mathbf{w})$ is defined by $(6)$ and 
+# 
+# $$
+# E_W(\mathbf{w}) = {1 \over 2} \mathbf{w}^T \mathbf{w} \tag{13}
+# $$
+# 
+# Maximizing the log posterior w.r.t. $\mathbf{w}$ gives the [maximum-a-posteriori](https://en.wikipedia.org/wiki/Maximum_a_posteriori_estimation) (MAP) estimate of $\mathbf{w}$. Maximizing the log posterior is equivalent to minimizing the sum-of-squares error function $E_D$ plus a quadratic regularization term $E_W$. This particular form regularization is known as *L2 regularization* or *weight decay* as it limits the magnitude of weights $w_j$. The contribution of the regularization term is determined by the ratio $\alpha / \beta$.
+# 
+# #### **<span style='color:#FF5733'>Posterior predictive distribution</span>**
+# 
+# For making a prediction $t$ at a new location $\mathbf{x}$ we use the posterior predictive distribution which is defined as
+# 
+# $$
+# p(t \lvert \mathbf{x}, \mathbf{t}, \alpha, \beta) = 
+# \int{p(t \lvert \mathbf{x}, \mathbf{w}, \beta) p(\mathbf{w} \lvert \mathbf{t}, \alpha, \beta) d\mathbf{w}} \tag{14}
+# $$
+# 
+# The posterior predictive distribution includes uncertainty about parameters $\mathbf{w}$ into predictions by weighting the conditional distribution $p(t \lvert \mathbf{x}, \mathbf{w}, \beta)$ with the posterior probability of weights $p(\mathbf{w} \lvert \mathbf{t}, \alpha, \beta)$ over the entire weight parameter space. By using the predictive distribution we're not only getting the expected value of $t$ at a new location $\mathbf{x}$ but also the uncertainty for that prediction. In our special case, the posterior predictive distribution is a Gaussian distribution
+# 
+# $$
+# p(t \lvert \mathbf{x}, \mathbf{t}, \alpha, \beta) = 
+# \mathcal{N}(t \lvert \mathbf{m}_N^T \boldsymbol\phi(\mathbf{x}), \sigma_N^2(\mathbf{x})) \tag{15}
+# $$
+# <br>
+# 
+# where mean $\mathbf{m}_N^T \boldsymbol\phi(\mathbf{x})$ is the regression function after $N$ observations and $\sigma_N^2(\mathbf{x})$ is the corresponding predictive variance
+# 
+# $$
+# \sigma_N^2(\mathbf{x}) = {1 \over \beta} + \boldsymbol\phi(\mathbf{x})^T \mathbf{S}_N \boldsymbol\phi(\mathbf{x}) \tag{16}
+# $$
+# 
+# The first term in $(16)$ represents the inherent noise in the data and the second term covers the uncertainty about parameters $\mathbf{w}$. So far, we have assumed that the values of $\alpha$ and $\beta$ are known. In a fully Bayesian treatment, however, we should define priors over $\alpha$ and $\beta$ and use the corresponding posteriors to additionally include uncertainties about $\alpha$ and $\beta$ into predictions. Unfortunately, complete integration over all three parameters $\mathbf{w}$, $\alpha$ and $\beta$ is analytically intractable and we have to use another approach.
+# 
+# #### **<span style='color:#FF5733'>Evidence Function</span>**
+# 
+# Estimates for $\alpha$ and $\beta$ can alternatively be obtained by first integrating the product of likelihood and prior over parameters $\mathbf{w}$
+# 
+# $$
+# p(\mathbf{t} \lvert \alpha, \beta) =
+# \int{p(\mathbf{t} \lvert \mathbf{w}, \beta) p(\mathbf{w} \lvert \alpha) d\mathbf{w}} \tag{17}
+# $$
+# <br>
+# 
+# and then maximizing the resulting *marginal likelihood* or *evidence function* w.r.t. $\alpha$ and $\beta$. This approach is known as [empirical Bayes](https://en.wikipedia.org/wiki/Empirical_Bayes_method). It can be shown that this is a good approximation for a fully Bayesian treatment if the posterior for $\alpha$ and $\beta$ is sharply peaked around the most probable value and the prior is relatively flat which is often a reasonable assumption. Integrating over model parameters or using a good approximation for it allows us to estimate values for $\alpha$ and $\beta$, and hence the regularization strength $\alpha / \beta$, from training data alone i.e. without using a validation set. 
+# 
+# The log of the marginal likelihood is given by
+# 
+# $$
+# \log p(\mathbf{t} \lvert \alpha, \beta) = {M \over 2} \log \alpha + {N \over 2} \log \beta -
+# E(\mathbf{m}_N) - {1 \over 2} \log \lvert \mathbf{S}_N^{-1}\rvert - {N \over 2} \log {2 \pi} \tag{18}
+# $$
+# 
+# where
+# 
+# $$
+# E(\mathbf{m}_N) = {\beta \over 2} \lVert \mathbf{t} - \boldsymbol\Phi \mathbf{m}_N \rVert^2 +
+# {\alpha \over 2} \mathbf{m}_N^T \mathbf{m}_N \tag{19}
+# $$
+# <br>
+# 
+# For completeness, the relationship between evidence, likelihood, prior, posterior is of course given by Bayes' theorem
+# 
+# $$
+# p(\mathbf{w} \lvert \mathbf{t}, \alpha, \beta) = 
+# {p(\mathbf{t} \lvert \mathbf{w}, \beta) p(\mathbf{w} \lvert \alpha) \over p(\mathbf{t} \lvert \alpha, \beta)}  \tag{20}
+# $$
+# 
+# #### Maximization
+# 
+# Maximization of the log marginal likelihood w.r.t. $\alpha$ and $\beta$ gives the following implicit solutions.
+# 
+# $$
+# \alpha = {\gamma \over \mathbf{m}_N^T \mathbf{m}_N} \tag{21}
+# $$
+# 
+# and 
+# 
+# $$
+# {1 \over \beta} = {1 \over N - \gamma} \sum_{i=1}^{N}(t_i - \mathbf{m}_N^T \boldsymbol\phi(\mathbf{x}_i))^2 \tag{22}
+# $$
+# 
+# where 
+# 
+# $$
+# \gamma = \sum_{i=0}^{M-1} {\lambda_i \over \alpha + \lambda_i} \tag{23}
+# $$
+# 
+# 
+# and $\lambda_i$ are the [eigenvalues](https://en.wikipedia.org/wiki/Eigenvalues_and_eigenvectors) of $\beta \boldsymbol\Phi^T \boldsymbol\Phi$. The solutions are implicit because $\alpha$ and $\gamma$ as well as $\beta$ and $\gamma$ depend on each other. Solutions for $\alpha$ and $\beta$ can therefore be obtained by starting with initial values for these parameters and then iterating over the above equations until convergence.
+
+# %% [markdown]
+# # <div style="padding: 30px;color:white;margin:10;font-size:60%;text-align:left;display:fill;border-radius:10px;background-color:#FFFFFF;overflow:hidden;background-color:#FF5733"><b><span style='color:#FFFFFF'>7 |</span></b> <b>ML MODELS TO PREDICT MEDIAN HOUSE VALUE</b></div>
+# 
+# ### <b><span style='color:#FF5733'> 7.1 |</span> Baseline bayesian regression models</b>
+# 
+# For the base models, let's investigate three things using a <b>5-fold Cross Validation</b> Approach:
+# 
+# - Foremost, let's create a simple baseline model, `DummyRegressor()`
+# - We have two ready dataframes, the original feature dataframe `trdata` & `tradata_upd`, with the additional two features. We'll use the automatically tuned hyperparameter (`lamda` & `alpha`) for all BR() generated models in the cross validation
+# - Additionally we noted that several features (`total_rooms`,`total_bedrooms`,`population`) have very high correlation to one another, so it's interesting to find out if a removal of a few of them would have any affect on the model performance 
+
+# %% [code] {"_kg_hide-input":true}
+''' Draw a a single Heatmap using Seaborn '''
+def heatmap1(values,xlabel,ylabel,xticklabels,yticklabels,
+            cmap='plasma',vmin=None,vmax=None,fmt="%0.2f"):
+
+    fig, ax = plt.subplots(figsize=(6,6))
+    sns.heatmap(values, ax=ax,cmap=cmap)
+    
+    img = ax.pcolor(values, cmap=cmap, vmin=vmin, vmax=vmax)
+    img.update_scalarmappable()
+    ax.set_xlabel(xlabel);ax.set_ylabel(ylabel)
+    ax.set_xticks(np.arange(len(xticklabels)) + 0.5)
+    ax.set_yticks(np.arange(len(yticklabels)) + 0.5)
+    ax.set_xticklabels(xticklabels);ax.set_yticklabels(yticklabels)
+    ax.set_title('BR()')
+    ax.set_aspect(1)
+    
+    for p, color, value in zip(img.get_paths(), img.get_facecolors(),img.get_array()):
+        x, y = p.vertices[:-2, :].mean(0)
+        if np.mean(color[:3]) > 0.5:
+            c = 'k'
+        else:
+            c = 'w'
+        ax.text(x, y, fmt % value, color=c, ha="center", va="center")
+
+# %% [code]
+# Model Evaluation w/ Cross Validation
+def modelEval(ldf,feature='median_house_value',model_id = 'dummy'):
+    
+    # Input: Feature & Target DataFrame
+
+    # Split feature/target variable
+    y = ldf[feature].copy()
+    X = ldf.copy()
+    del X[feature]     # remove target variable
+    
+    # Pick Model 
+    if(model_id is 'dummy'):    model = DummyRegressor()
+    if(model_id is 'br'):    model = BR(verbose=False)  
+    if(model_id is 'rf'):    model = RandomForestRegressor(n_estimators=10,random_state=10)
+    
+    ''' Parameter Based Cross Validation (No Pipeline)'''
+#     gscv = GridSearchCV(model,param_grid,cv=5)
+#     gscv.fit(X,y)
+#     results = pd.DataFrame(gscv.cv_results_)
+#     scores = np.array(results.mean_test_score).reshape(7,7)
+    
+#     # plot the cross validation mean scores
+#     heatmap1(scores,xlabel='lamda',xticklabels=param_grid['lamd'],
+#                     ylabel='alpha',yticklabels=param_grid['alph'])
+    
+    ''' Standard Cross Validation '''
+    cv_score = np.sqrt(-cross_val_score(model,X,y,cv=5,scoring='neg_mean_squared_error'))
+    print("Scores:",cv_score);print("Mean:", cv_score.mean());print("std:", cv_score.std())
+
+# %% [code]
+# A simple comparison model
+modelEval(trdata,model_id='dummy')
+
+# %% [code]
+# Original Features
+modelEval(trdata,model_id='br')
+
+# %% [markdown]
+# We can see that the `BR()` Linear Model performs as expected, much better than the baseline model, `DummyRegressor()`, a quick indicator that the model actually learns something meaningful
+
+# %% [code]
+# Extra Features
+modelEval(trdata_upd,model_id='br')
+
+# %% [markdown]
+# The addition of two new features (`diag_coord`,`bedperroom`) improved the models performance quite significantly
+
+# %% [code]
+# lets remove two of the three similar features
+del trdata_upd['total_bedrooms']
+del trdata_upd['total_rooms']
+
+# %% [code]
+modelEval(trdata_upd,model_id='br')
+
+# %% [markdown]
+# - We can note that by removing a large portion of the very highly correlated features, there is minimal impact on the models performance, indicating that the two features teach the model very similar things to `population` & are not needed.
+# - The only benefit we gain is a reduction in training code, withe a reduction of features
+# 
+# <br>
+# 
+# ### <b><span style='color:#FF5733'> 7.2 |</span> ML pipeline model</b>
+# 
+# `Pipelines` are a very neat way to group multiple steps of a model's preparation process, from `feature matrix` adjustment to the actual model evaluation step. `Pipelines` are also used to prevent `data leakage`.
+# 
+# Let's try two things using `Pipelines`:
+# 
+# - We noted that our data exhibits nonlinear feature relations, so we'll create a simple pipeline that uses `PolynomialFeatures()` and see if that helps the model adjust to the nonlinear nature of a lot of our data (we'll look at 2nd & 3rd order features)
+# - We also noted that our features have very different ranges for values, which could be an issue. Certain models don't perform very well unless all features have similar scaling, so let's see if `BR()` is one of those models.
+
+# %% [markdown]
+# 
+# 
+
+# %% [code] {"_kg_hide-input":true}
+''' Plot Two Seaborn Heatmaps Side by Side '''
+# used for Polynomial vs non polynomial cross validaion score comparison
+def heatmap2(values,values2,xlabel,ylabel,xticklabels,yticklabels,
+			cmap='plasma',vmin=None,vmax=None,fmt="%0.2f"):
+
+	fig, (ax1,ax2) = plt.subplots(1,2,figsize=(15,5))
+	sns.heatmap(values, ax=ax1,cmap=cmap)
+	sns.heatmap(values2, ax=ax2,cmap=cmap)
+	
+	img = ax1.pcolor(values, cmap=cmap, vmin=vmin, vmax=vmax)
+	img.update_scalarmappable()
+	ax1.set_xlabel(xlabel);ax1.set_ylabel(ylabel)
+	ax1.set_xticks(np.arange(len(xticklabels)) + 0.5)
+	ax1.set_yticks(np.arange(len(yticklabels)) + 0.5)
+	ax1.set_xticklabels(xticklabels);ax1.set_yticklabels(yticklabels)
+	ax1.set_title('PolynomialFeatures(2) + BR()')
+	ax1.set_aspect(1)
+	
+	for p, color, value in zip(img.get_paths(), img.get_facecolors(),img.get_array()):
+		x, y = p.vertices[:-2, :].mean(0)
+		if np.mean(color[:3]) > 0.5:
+			c = 'k'
+		else:
+			c = 'w'
+		ax1.text(x, y, fmt % value, color=c, ha="center", va="center")
+		
+	img = ax2.pcolor(values2, cmap=cmap, vmin=vmin, vmax=vmax)
+	img.update_scalarmappable()
+	ax2.set_xlabel(xlabel);ax2.set_ylabel(ylabel)
+	ax2.set_xticks(np.arange(len(xticklabels)) + 0.5)
+	ax2.set_yticks(np.arange(len(yticklabels)) + 0.5)
+	ax2.set_xticklabels(xticklabels);ax2.set_yticklabels(yticklabels)
+	ax2.set_title('PolynomialFeatures(3) + BR()')
+	ax2.set_aspect(1)
+	
+	for p, color, value in zip(img.get_paths(), img.get_facecolors(),img.get_array()):
+		x, y = p.vertices[:-2, :].mean(0)
+		if np.mean(color[:3]) > 0.5:
+			c = 'k'
+		else:
+			c = 'w'
+		ax2.text(x, y, fmt % value, color=c, ha="center", va="center")
+
+# %% [code] {"_kg_hide-input":false}
+# Model Evaluation Function w/ Pipelines
+def modelEval2(ldf,feature='median_house_value',model_id = 'dummy',scaling_id=False):
+
+    # Given a dataframe, split feature/target variable
+    y = ldf[feature].copy()
+    X = ldf.copy()
+    del X[feature]     # remove target variable
+    
+    tlst = []
+    for i in [2,3]:
+        
+        # Pick Model 
+        if(model_id is 'dummy'):    model = DummyRegressor()
+        if(model_id is 'br'):    model = BR(verbose=False)  
+        if(model_id is 'rf'):    model = RandomForestRegressor(n_estimators=10,random_state=10)
+
+        # Pick a Pipeline (Polynomial Feature Adjustment + Model)
+        if(scaling_id is False):
+            pipe = Pipeline(steps=[('poly',PolynomialFeatures(i)),
+                                   ('model',model)])
+        else:
+            pipe = Pipeline(steps=[('scaler',StandardScaler()),
+                                   ('poly',PolynomialFeatures(i)),
+                                   ('model',model)])
+
+        ''' Parameter Based Cross Validation (With Pipeline)'''
+        # define a parameter search grid, pipepines require slightly different notations w/ __
+#         param_grid = {
+#         'model__lamd': [0.0001,0.001, 0.01, 0.1, 1, 10, 100],
+#         'model__alph': [0.0001,0.001, 0.01, 0.1, 1, 10, 100]}
+        
+#         gscv2 = GridSearchCV(pipe, param_grid,cv=5)
+#         gscv2.fit(X,y)
+#         ypred = gscv2.predict(X)
+#         results2 = pd.DataFrame(gscv2.cv_results_)
+#         scores2 = np.array(results2.mean_test_score).reshape(7,7)
+#         tlst.append(scores2)
+        
+        ''' Standard Cross Validation '''
+        cv_score = np.sqrt(-cross_val_score(pipe,X,y,cv=5,scoring='neg_mean_squared_error'))
+        print("Scores:",cv_score.round(2))
+        print("Mean:", cv_score.mean().round(2));print("std:", cv_score.std().round(2))
+    
+#     plot mean of 5 cross validation segment score
+#     heatmap2(tlst[0],tlst[1],xlabel='lamd', xticklabels=param_grid['model__lamd'],
+#                              ylabel='alph', yticklabels=param_grid['model__alph'])
+
+# %% [code]
+modelEval2(trdata_upd,model_id='br',scaling_id=False)
+
+# %% [markdown]
+# - Well, that didn't quite go to plan & we obtain very high error models. The likely cause being the imbalance of feature scaling. 
+# - Let's actually confirm if `scaling` can fix this issue:
+
+# %% [code]
+modelEval2(trdata_upd,model_id='br',scaling_id=True)
+
+# %% [markdown]
+# - It's interesting to note that we have quite a significant improvement in accuracy with the addition of 2nd order features, however 3rd order features gave us a worse result.
+# - With the addition of `PolynomialFeatures()`, this is quite a common occurence. It's likely we can get an improvement if we increase the order even further, however there are slight issue with such an approach. 
+# - To utilise polynomial features more effectively, one has to carefully manage the number of features that are fed into the model & reduce them as much as possible. There tends to be a limit at which the the cost of matrix inversion becomes a little too much, at which it would probably be best to use something more efficient, like Gaussian Process Regression `GP()` to adapt to more complex data spread in higher dimensions without `PolynomialFeatures()`
+# - The class `BR()` already utilises pseudoinversion, `pinv()` as opposed to standard matrix inversion, without which 3rd order will probably give us a singular matrix condition; indicating the model is has a clear restriction relating to the feature number (you can easily confirm this)
+# <br>
+# ***
+# - Let's quicky check how our model performs to a very common & powerful `ensemble` model, `RandomForest()`:
+
+# %% [code]
+modelEval(trdata_upd,model_id='rf')
+
+# %% [markdown]
+# - We can see that even a very powerful like `RandomForest()` can't really reduce the `RMSE` with the current set of feature & instance combination very much further (despite being a model that very easily can overpredict) 
+# - An error of 48,000 is quite a large in the context of the target values & it's probably a reasonable idea to investigate the validity of the current dataset & review it
+# - The dataset is quite old & doesn't contain the best features comapared to more recent datasets, like the introductory [House Price Problem](https://www.kaggle.com/c/house-prices-advanced-regression-techniques) ( which was quite fun! ), but hopefully the basic approach one can take was clear.
+
+# %% [markdown]
+# # <div style="padding: 30px;color:white;margin:10;font-size:60%;text-align:left;display:fill;border-radius:10px;background-color:#FFFFFF;overflow:hidden;background-color:#FF5733"><b><span style='color:#FFFFFF'>8 |</span></b> <b>CONCLUDING REMARKS</b></div>
+# 
+# - We started off with a dataset which contained `missing data`, we looked at an `unsupervised learning` approach to data imputation.
+# - The data analysis revealed that our data could be potentially cause issues for our model, such as `nonlinearity`,`skewness`,`large variation in range`,`too highly correlated features` to name a few.
+# - We evaluated the base feature model, which wasn't very good and went on to try various things to improve the model:
+#   - added extra features
+#   - removed features which didn't teach the model anything new
+#   - added `PolynomialFeatures()` which helped the model adapt to adapt to the nonlinear nature of the data
+#   - added scaling of features, which adjusted the all features to a similar range
+# - We obtained a model that performed significantly better than what we started off with, so it was nice to make some progress
+# - Additional things that could have been attemped are `skewness correction` & more thorough feature by feature basis influence analysis

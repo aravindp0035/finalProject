@@ -1,0 +1,621 @@
+
+
+I am a beginner can any one tell me why model is not performing well. i am requesting your feedback thank you
+
+    # This Python 3 environment comes with many helpful analytics libraries installed
+    # It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+    # For example, here's several helpful packages to load
+
+    import numpy as np # linear algebra
+    import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+    # Input data files are available in the read-only "../input/" directory
+    # For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+    import os
+    for dirname, _, filenames in os.walk('/kaggle/input'):
+        for filename in filenames:
+            print(os.path.join(dirname, filename))
+
+    # You can write up to 20GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+    # You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+
+    /kaggle/input/house-price-prediction-seattle/train.csv
+    /kaggle/input/house-price-prediction-seattle/test.csv
+
+    import pandas as pd
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+
+    train = pd.read_csv("/kaggle/input/house-price-prediction-seattle/train.csv")
+
+    train.head()
+
+       beds  baths    size size_units  lot_size lot_size_units  zip_code  \
+    0     3    2.5  2590.0       sqft   6000.00           sqft     98144   
+    1     4    2.0  2240.0       sqft      0.31           acre     98106   
+    2     4    3.0  2040.0       sqft   3783.00           sqft     98107   
+    3     4    3.0  3800.0       sqft   5175.00           sqft     98199   
+    4     2    2.0  1042.0       sqft       NaN            NaN     98102   
+
+           price  
+    0   795000.0  
+    1   915000.0  
+    2   950000.0  
+    3  1950000.0  
+    4   950000.0  
+
+    train.columns
+
+    Index(['beds', 'baths', 'size', 'size_units', 'lot_size', 'lot_size_units',
+           'zip_code', 'price'],
+          dtype='object')
+
+    train.isnull().sum()
+
+    beds                0
+    baths               0
+    size                0
+    size_units          0
+    lot_size          347
+    lot_size_units    347
+    zip_code            0
+    price               0
+    dtype: int64
+
+    train.shape
+
+    (2016, 8)
+
+    train.dropna(inplace = True)
+
+    train.isnull().sum()
+
+    beds              0
+    baths             0
+    size              0
+    size_units        0
+    lot_size          0
+    lot_size_units    0
+    zip_code          0
+    price             0
+    dtype: int64
+
+    train.shape
+
+    (1669, 8)
+
+    train.head()
+
+       beds  baths    size size_units  lot_size lot_size_units  zip_code  \
+    0     3    2.5  2590.0       sqft   6000.00           sqft     98144   
+    1     4    2.0  2240.0       sqft      0.31           acre     98106   
+    2     4    3.0  2040.0       sqft   3783.00           sqft     98107   
+    3     4    3.0  3800.0       sqft   5175.00           sqft     98199   
+    5     2    2.0  1190.0       sqft      1.00           acre     98107   
+
+           price  
+    0   795000.0  
+    1   915000.0  
+    2   950000.0  
+    3  1950000.0  
+    5   740000.0  
+
+    train.size_units.unique()
+
+    array(['sqft'], dtype=object)
+
+    train.lot_size_units.unique()
+
+    array(['sqft', 'acre'], dtype=object)
+
+    # Converting Lot_size_units acre to sqft
+    # 1 acre = 43560 sqft
+
+    train["lot_size"] = train.apply(lambda row: row["lot_size"] * 43560 if row["lot_size_units"] == 'acre' else row["lot_size"], axis = 1)
+    train["lot_size_units"] = "sqft"
+
+    train.head()
+
+       beds  baths    size size_units  lot_size lot_size_units  zip_code  \
+    0     3    2.5  2590.0       sqft    6000.0           sqft     98144   
+    1     4    2.0  2240.0       sqft   13503.6           sqft     98106   
+    2     4    3.0  2040.0       sqft    3783.0           sqft     98107   
+    3     4    3.0  3800.0       sqft    5175.0           sqft     98199   
+    5     2    2.0  1190.0       sqft   43560.0           sqft     98107   
+
+           price  
+    0   795000.0  
+    1   915000.0  
+    2   950000.0  
+    3  1950000.0  
+    5   740000.0  
+
+    train.describe()
+
+                  beds        baths          size      lot_size      zip_code  \
+    count  1669.000000  1669.000000   1669.000000  1.669000e+03   1669.000000   
+    mean      3.122229     2.294488   1893.097663  1.878995e+04  98124.519473   
+    std       1.186723     1.008658    916.952780  2.880682e+05     23.159993   
+    min       1.000000     0.500000    250.000000  5.000000e+02  98101.000000   
+    25%       2.000000     1.500000   1260.000000  2.734000e+03  98108.000000   
+    50%       3.000000     2.000000   1719.000000  5.000000e+03  98117.000000   
+    75%       4.000000     3.000000   2360.000000  7.389000e+03  98126.000000   
+    max      15.000000     9.000000  11010.000000  1.089000e+07  98199.000000   
+
+                  price  
+    count  1.669000e+03  
+    mean   1.038475e+06  
+    std    1.007944e+06  
+    min    1.590000e+05  
+    25%    6.800000e+05  
+    50%    8.650000e+05  
+    75%    1.175000e+06  
+    max    2.500000e+07  
+
+EDA
+
+    sns.scatterplot(x="beds", y="baths", data = train, hue="price", palette="coolwarm")
+
+    <Axes: xlabel='beds', ylabel='baths'>
+
+[]
+
+     # Finding outliers
+    sns.histplot(x="beds", data = train)
+
+    /opt/conda/lib/python3.10/site-packages/seaborn/_oldcore.py:1119: FutureWarning: use_inf_as_na option is deprecated and will be removed in a future version. Convert inf values to NaN before operating instead.
+      with pd.option_context('mode.use_inf_as_na', True):
+
+    <Axes: xlabel='beds', ylabel='Count'>
+
+[]
+
+Outlier Removal
+
+     # Finding outliers
+    sns.boxplot(x="lot_size", data = train)
+
+    <Axes: xlabel='lot_size'>
+
+[]
+
+    train.head()
+
+       beds  baths    size size_units  lot_size lot_size_units  zip_code  \
+    0     3    2.5  2590.0       sqft    6000.0           sqft     98144   
+    1     4    2.0  2240.0       sqft   13503.6           sqft     98106   
+    2     4    3.0  2040.0       sqft    3783.0           sqft     98107   
+    3     4    3.0  3800.0       sqft    5175.0           sqft     98199   
+    5     2    2.0  1190.0       sqft   43560.0           sqft     98107   
+
+           price  
+    0   795000.0  
+    1   915000.0  
+    2   950000.0  
+    3  1950000.0  
+    5   740000.0  
+
+    # Calculate the IQR for the 'price' column
+    Q1 = train['lot_size'].quantile(0.25)
+    Q3 = train['lot_size'].quantile(0.75)
+    IQR = Q3 - Q1
+
+    # Determine the bounds for outliers
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+
+    print(f'Lower bound for outliers: {lower_bound}')
+    print(f'Upper bound for outliers: {upper_bound}')
+
+    # Exclude the outliers from the DataFrame
+    df_no_outliers = train[(train['lot_size'] >= lower_bound) & (train['lot_size'] <= upper_bound)]
+
+    # Display the DataFrame without outliers
+    print(df_no_outliers)
+
+    Lower bound for outliers: -4248.5
+    Upper bound for outliers: 14371.5
+          beds  baths    size size_units  lot_size lot_size_units  zip_code  \
+    0        3    2.5  2590.0       sqft    6000.0           sqft     98144   
+    1        4    2.0  2240.0       sqft   13503.6           sqft     98106   
+    2        4    3.0  2040.0       sqft    3783.0           sqft     98107   
+    3        4    3.0  3800.0       sqft    5175.0           sqft     98199   
+    6        1    1.0   670.0       sqft    6000.0           sqft     98133   
+    ...    ...    ...     ...        ...       ...            ...       ...   
+    2007     3    1.0  1120.0       sqft    7407.0           sqft     98178   
+    2008     3    2.0  1482.0       sqft    1085.0           sqft     98117   
+    2009     3    3.5  1680.0       sqft    1486.0           sqft     98126   
+    2013     4    2.0  2140.0       sqft    6250.0           sqft     98199   
+    2015     3    2.0  1710.0       sqft    4267.0           sqft     98133   
+
+              price  
+    0      795000.0  
+    1      915000.0  
+    2      950000.0  
+    3     1950000.0  
+    6      460000.0  
+    ...         ...  
+    2007   708000.0  
+    2008   919000.0  
+    2009   675000.0  
+    2013  1150000.0  
+    2015   659000.0  
+
+    [1527 rows x 8 columns]
+
+    df_no_outliers.head()
+
+       beds  baths    size size_units  lot_size lot_size_units  zip_code  \
+    0     3    2.5  2590.0       sqft    6000.0           sqft     98144   
+    1     4    2.0  2240.0       sqft   13503.6           sqft     98106   
+    2     4    3.0  2040.0       sqft    3783.0           sqft     98107   
+    3     4    3.0  3800.0       sqft    5175.0           sqft     98199   
+    6     1    1.0   670.0       sqft    6000.0           sqft     98133   
+
+           price  
+    0   795000.0  
+    1   915000.0  
+    2   950000.0  
+    3  1950000.0  
+    6   460000.0  
+
+    sns.boxplot(x="lot_size", data=df_no_outliers)
+
+    <Axes: xlabel='lot_size'>
+
+[]
+
+    sns.boxplot(x="price", data = df_no_outliers)
+
+    <Axes: xlabel='price'>
+
+[]
+
+    Q1 = df_no_outliers["price"].quantile(0.25)
+    Q3 = df_no_outliers["price"].quantile(0.75)
+    IQR = Q3 - Q1
+
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+
+    df_no_outliers = df_no_outliers[(df_no_outliers["price"] >= lower_bound) & (df_no_outliers["price"] <= upper_bound)]
+
+    df_no_outliers.head()
+
+       beds  baths    size size_units  lot_size lot_size_units  zip_code  \
+    0     3    2.5  2590.0       sqft    6000.0           sqft     98144   
+    1     4    2.0  2240.0       sqft   13503.6           sqft     98106   
+    2     4    3.0  2040.0       sqft    3783.0           sqft     98107   
+    3     4    3.0  3800.0       sqft    5175.0           sqft     98199   
+    6     1    1.0   670.0       sqft    6000.0           sqft     98133   
+
+           price  
+    0   795000.0  
+    1   915000.0  
+    2   950000.0  
+    3  1950000.0  
+    6   460000.0  
+
+    sns.boxplot(x=df_no_outliers["price"], data=df_no_outliers)
+
+    <Axes: xlabel='price'>
+
+[]
+
+    df_no_outliers.describe()
+
+                  beds        baths         size      lot_size      zip_code  \
+    count  1435.000000  1435.000000  1435.000000   1435.000000   1435.000000   
+    mean      3.128920     2.251568  1818.221603   4736.999164  98124.680836   
+    std       1.085967     0.951100   724.422424   2877.235395     23.236127   
+    min       1.000000     0.500000   376.000000    500.000000  98102.000000   
+    25%       2.000000     2.000000  1290.000000   2242.000000  98108.000000   
+    50%       3.000000     2.000000  1710.000000   4800.000000  98117.000000   
+    75%       4.000000     2.750000  2284.500000   6325.500000  98126.000000   
+    max      14.000000     9.000000  6990.000000  13939.200000  98199.000000   
+
+                  price  
+    count  1.435000e+03  
+    mean   9.289760e+05  
+    std    3.412358e+05  
+    min    1.594880e+05  
+    25%    6.950000e+05  
+    50%    8.550000e+05  
+    75%    1.116000e+06  
+    max    1.950000e+06  
+
+    sns.distplot(train["lot_size"])
+
+    /tmp/ipykernel_18/324568693.py:1: UserWarning: 
+
+    `distplot` is a deprecated function and will be removed in seaborn v0.14.0.
+
+    Please adapt your code to use either `displot` (a figure-level function with
+    similar flexibility) or `histplot` (an axes-level function for histograms).
+
+    For a guide to updating your code to use the new functions, please see
+    https://gist.github.com/mwaskom/de44147ed2974457ad6372750bbe5751
+
+      sns.distplot(train["lot_size"])
+    /opt/conda/lib/python3.10/site-packages/seaborn/_oldcore.py:1119: FutureWarning: use_inf_as_na option is deprecated and will be removed in a future version. Convert inf values to NaN before operating instead.
+      with pd.option_context('mode.use_inf_as_na', True):
+
+    <Axes: xlabel='lot_size', ylabel='Density'>
+
+[]
+
+    sns.distplot(df_no_outliers["lot_size"])
+
+    /tmp/ipykernel_18/3128664841.py:1: UserWarning: 
+
+    `distplot` is a deprecated function and will be removed in seaborn v0.14.0.
+
+    Please adapt your code to use either `displot` (a figure-level function with
+    similar flexibility) or `histplot` (an axes-level function for histograms).
+
+    For a guide to updating your code to use the new functions, please see
+    https://gist.github.com/mwaskom/de44147ed2974457ad6372750bbe5751
+
+      sns.distplot(df_no_outliers["lot_size"])
+    /opt/conda/lib/python3.10/site-packages/seaborn/_oldcore.py:1119: FutureWarning: use_inf_as_na option is deprecated and will be removed in a future version. Convert inf values to NaN before operating instead.
+      with pd.option_context('mode.use_inf_as_na', True):
+
+    <Axes: xlabel='lot_size', ylabel='Density'>
+
+[]
+
+    sns.distplot(train["price"])
+
+    /tmp/ipykernel_18/1282872810.py:1: UserWarning: 
+
+    `distplot` is a deprecated function and will be removed in seaborn v0.14.0.
+
+    Please adapt your code to use either `displot` (a figure-level function with
+    similar flexibility) or `histplot` (an axes-level function for histograms).
+
+    For a guide to updating your code to use the new functions, please see
+    https://gist.github.com/mwaskom/de44147ed2974457ad6372750bbe5751
+
+      sns.distplot(train["price"])
+    /opt/conda/lib/python3.10/site-packages/seaborn/_oldcore.py:1119: FutureWarning: use_inf_as_na option is deprecated and will be removed in a future version. Convert inf values to NaN before operating instead.
+      with pd.option_context('mode.use_inf_as_na', True):
+
+    <Axes: xlabel='price', ylabel='Density'>
+
+[]
+
+    sns.distplot(df_no_outliers["price"])
+
+    /tmp/ipykernel_18/4187251256.py:1: UserWarning: 
+
+    `distplot` is a deprecated function and will be removed in seaborn v0.14.0.
+
+    Please adapt your code to use either `displot` (a figure-level function with
+    similar flexibility) or `histplot` (an axes-level function for histograms).
+
+    For a guide to updating your code to use the new functions, please see
+    https://gist.github.com/mwaskom/de44147ed2974457ad6372750bbe5751
+
+      sns.distplot(df_no_outliers["price"])
+    /opt/conda/lib/python3.10/site-packages/seaborn/_oldcore.py:1119: FutureWarning: use_inf_as_na option is deprecated and will be removed in a future version. Convert inf values to NaN before operating instead.
+      with pd.option_context('mode.use_inf_as_na', True):
+
+    <Axes: xlabel='price', ylabel='Density'>
+
+[]
+
+    sns.distplot(train["size"])
+
+    /tmp/ipykernel_18/1271231474.py:1: UserWarning: 
+
+    `distplot` is a deprecated function and will be removed in seaborn v0.14.0.
+
+    Please adapt your code to use either `displot` (a figure-level function with
+    similar flexibility) or `histplot` (an axes-level function for histograms).
+
+    For a guide to updating your code to use the new functions, please see
+    https://gist.github.com/mwaskom/de44147ed2974457ad6372750bbe5751
+
+      sns.distplot(train["size"])
+    /opt/conda/lib/python3.10/site-packages/seaborn/_oldcore.py:1119: FutureWarning: use_inf_as_na option is deprecated and will be removed in a future version. Convert inf values to NaN before operating instead.
+      with pd.option_context('mode.use_inf_as_na', True):
+
+    <Axes: xlabel='size', ylabel='Density'>
+
+[]
+
+    sns.boxplot(train["size"])
+
+    <Axes: >
+
+[]
+
+    Q1 = df_no_outliers["size"].quantile(0.25)
+    Q3 = df_no_outliers["size"].quantile(0.75)
+    IQR = Q3 - Q1
+
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+
+    df_no_outliers = df_no_outliers[(df_no_outliers["size"] >= lower_bound) & (df_no_outliers["size"] <= upper_bound)]
+
+    df_no_outliers.head()
+
+       beds  baths    size size_units  lot_size lot_size_units  zip_code     price
+    0     3    2.5  2590.0       sqft    6000.0           sqft     98144  795000.0
+    1     4    2.0  2240.0       sqft   13503.6           sqft     98106  915000.0
+    2     4    3.0  2040.0       sqft    3783.0           sqft     98107  950000.0
+    6     1    1.0   670.0       sqft    6000.0           sqft     98133  460000.0
+    8     3    2.5  1520.0       sqft     741.0           sqft     98108  565000.0
+
+    sns.boxplot(df_no_outliers["size"])
+
+    <Axes: >
+
+[]
+
+    df_no_outliers.shape
+
+    (1415, 8)
+
+    train.shape
+
+    (1669, 8)
+
+Model Creation
+
+    from sklearn.preprocessing import StandardScaler
+
+    scaler = StandardScaler()
+
+    df_no_outliers.head()
+
+       beds  baths    size size_units  lot_size lot_size_units  zip_code     price
+    0     3    2.5  2590.0       sqft    6000.0           sqft     98144  795000.0
+    1     4    2.0  2240.0       sqft   13503.6           sqft     98106  915000.0
+    2     4    3.0  2040.0       sqft    3783.0           sqft     98107  950000.0
+    6     1    1.0   670.0       sqft    6000.0           sqft     98133  460000.0
+    8     3    2.5  1520.0       sqft     741.0           sqft     98108  565000.0
+
+    df_no_outliers.drop(columns = ["size_units", "lot_size_units"], axis = 1, inplace = True)
+
+    df_no_outliers = pd.DataFrame(scaler.fit_transform(df_no_outliers), columns=df_no_outliers.columns)
+
+    df_no_outliers.head()
+
+           beds     baths      size  lot_size  zip_code     price
+    0 -0.091094  0.306591  1.215388  0.453891  0.837758 -0.378545
+    1  0.908116 -0.248884  0.687667  3.078880 -0.804228 -0.019934
+    2  0.908116  0.862066  0.386113 -0.321683 -0.761018  0.084661
+    3 -2.089513 -1.359834 -1.679538  0.453891  0.362446 -1.379666
+    4 -0.091094  0.306591 -0.397930 -1.385868 -0.717808 -1.065882
+
+    x = df_no_outliers.drop(["price", "zip_code"], axis = 1)
+    y = df_no_outliers["price"]
+
+    from sklearn.linear_model import LinearRegression
+
+    lr = LinearRegression()
+
+    lr.fit(x, y)
+
+    LinearRegression()
+
+Testing my model in my test data only
+
+    test = pd.read_csv("/kaggle/input/house-price-prediction-seattle/test.csv")
+
+    test.head()
+
+       beds  baths    size size_units  lot_size lot_size_units  zip_code  \
+    0     3    3.0  2850.0       sqft   4200.00           sqft     98119   
+    1     4    5.0  3040.0       sqft   5002.00           sqft     98106   
+    2     3    1.0  1290.0       sqft   6048.00           sqft     98125   
+    3     3    2.0  2360.0       sqft      0.28           acre     98188   
+    4     3    3.5  1942.0       sqft   1603.00           sqft     98107   
+
+           price  
+    0  1175000.0  
+    1  1057500.0  
+    2   799000.0  
+    3   565000.0  
+    4  1187000.0  
+
+    # Converting Lot_size_units acre to sqft
+    # 1 acre = 43560 sqft
+
+    test["lot_size"] = train.apply(lambda row: row["lot_size"] * 43560 if row["lot_size_units"] == 'acre' else row["lot_size"], axis = 1)
+    test["lot_size_units"] = "sqft"
+
+    test.head()
+
+       beds  baths    size size_units  lot_size lot_size_units  zip_code  \
+    0     3    3.0  2850.0       sqft    6000.0           sqft     98119   
+    1     4    5.0  3040.0       sqft   13503.6           sqft     98106   
+    2     3    1.0  1290.0       sqft    3783.0           sqft     98125   
+    3     3    2.0  2360.0       sqft    5175.0           sqft     98188   
+    4     3    3.5  1942.0       sqft       NaN           sqft     98107   
+
+           price  
+    0  1175000.0  
+    1  1057500.0  
+    2   799000.0  
+    3   565000.0  
+    4  1187000.0  
+
+    test.dropna(inplace = True)
+
+    test.head()
+
+       beds  baths    size size_units  lot_size lot_size_units  zip_code  \
+    0     3    3.0  2850.0       sqft    6000.0           sqft     98119   
+    1     4    5.0  3040.0       sqft   13503.6           sqft     98106   
+    2     3    1.0  1290.0       sqft    3783.0           sqft     98125   
+    3     3    2.0  2360.0       sqft    5175.0           sqft     98188   
+    5     2    2.0   963.0       sqft   43560.0           sqft     98122   
+
+           price  
+    0  1175000.0  
+    1  1057500.0  
+    2   799000.0  
+    3   565000.0  
+    5   701000.0  
+
+    test.isnull().sum()
+
+    beds              0
+    baths             0
+    size              0
+    size_units        0
+    lot_size          0
+    lot_size_units    0
+    zip_code          0
+    price             0
+    dtype: int64
+
+    test.drop(["size_units", "lot_size_units", "zip_code"], axis = 1, inplace = True)
+
+    test.head()
+
+       beds  baths    size  lot_size      price
+    0     3    3.0  2850.0    6000.0  1175000.0
+    1     4    5.0  3040.0   13503.6  1057500.0
+    2     3    1.0  1290.0    3783.0   799000.0
+    3     3    2.0  2360.0    5175.0   565000.0
+    5     2    2.0   963.0   43560.0   701000.0
+
+    test = pd.DataFrame(scaler.fit_transform(test), columns = test.columns)
+
+    test.head()
+
+           beds     baths      size  lot_size     price
+    0  0.036925  0.754226  1.092739 -0.140402  0.298988
+    1  0.890309  2.706064  1.302043  0.138596  0.111129
+    2  0.036925 -1.197612 -0.625760 -0.222835 -0.302161
+    3  0.036925 -0.221693  0.552954 -0.171078 -0.676281
+    4 -0.816459 -0.221693 -0.985984  1.256151 -0.458844
+
+    x_test = test.drop("price", axis = 1)
+    y_test = test["price"]
+
+    lr.score(x_test, y_test)
+
+    0.5329338497850857
+
+    from sklearn.ensemble import RandomForestRegressor
+
+    random_forest = RandomForestRegressor()
+
+    # Fitting model with default opaarmeters
+    random_forest.fit(x, y)
+
+    RandomForestRegressor()
+
+    random_forest.score(x, y)
+
+    0.9242196638721751
+
+    random_forest.score(x_test, y_test)
+
+    0.4293798762865262

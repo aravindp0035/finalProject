@@ -1,0 +1,185 @@
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:37.775735Z","iopub.execute_input":"2021-06-03T11:53:37.776131Z","iopub.status.idle":"2021-06-03T11:53:37.781079Z","shell.execute_reply.started":"2021-06-03T11:53:37.776096Z","shell.execute_reply":"2021-06-03T11:53:37.780018Z"}}
+import numpy as np # linear algebra
+import pandas as pd # data processing
+from matplotlib import pyplot as plt
+from matplotlib import rcParams as rcP
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:37.824827Z","iopub.execute_input":"2021-06-03T11:53:37.825168Z","iopub.status.idle":"2021-06-03T11:53:37.889727Z","shell.execute_reply.started":"2021-06-03T11:53:37.825125Z","shell.execute_reply":"2021-06-03T11:53:37.888918Z"}}
+df = pd.read_csv('../input/pune-house-data/Pune house data.csv')
+df.head()
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:37.891533Z","iopub.execute_input":"2021-06-03T11:53:37.891825Z","iopub.status.idle":"2021-06-03T11:53:37.89788Z","shell.execute_reply.started":"2021-06-03T11:53:37.891796Z","shell.execute_reply":"2021-06-03T11:53:37.896861Z"}}
+# Exploring the dataset
+df.shape
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:37.899347Z","iopub.execute_input":"2021-06-03T11:53:37.899655Z","iopub.status.idle":"2021-06-03T11:53:37.919354Z","shell.execute_reply.started":"2021-06-03T11:53:37.899614Z","shell.execute_reply":"2021-06-03T11:53:37.918329Z"}}
+# Exploring the dataset
+df.groupby('area_type')['area_type'].agg('count')
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:37.921063Z","iopub.execute_input":"2021-06-03T11:53:37.921414Z","iopub.status.idle":"2021-06-03T11:53:37.933581Z","shell.execute_reply.started":"2021-06-03T11:53:37.921382Z","shell.execute_reply":"2021-06-03T11:53:37.932595Z"}}
+# Exploring the dataset
+df.groupby('availability')['availability'].agg('count')
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:37.936529Z","iopub.execute_input":"2021-06-03T11:53:37.93683Z","iopub.status.idle":"2021-06-03T11:53:37.948285Z","shell.execute_reply.started":"2021-06-03T11:53:37.936794Z","shell.execute_reply":"2021-06-03T11:53:37.947336Z"}}
+# Exploring the dataset
+df.groupby('size')['size'].agg('count')
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:37.949659Z","iopub.execute_input":"2021-06-03T11:53:37.949965Z","iopub.status.idle":"2021-06-03T11:53:37.964783Z","shell.execute_reply.started":"2021-06-03T11:53:37.949938Z","shell.execute_reply":"2021-06-03T11:53:37.963843Z"}}
+# Exploring the dataset
+df.groupby('site_location')['site_location'].agg('count')
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:37.966057Z","iopub.execute_input":"2021-06-03T11:53:37.966425Z","iopub.status.idle":"2021-06-03T11:53:37.986511Z","shell.execute_reply.started":"2021-06-03T11:53:37.966384Z","shell.execute_reply":"2021-06-03T11:53:37.985339Z"}}
+# Removing the columns of society
+df = df.drop('society', axis='columns')
+df.head()
+
+# %% [markdown]
+# ** Data Cleaning Process**
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:37.987884Z","iopub.execute_input":"2021-06-03T11:53:37.988291Z","iopub.status.idle":"2021-06-03T11:53:38.008065Z","shell.execute_reply.started":"2021-06-03T11:53:37.988259Z","shell.execute_reply":"2021-06-03T11:53:38.006911Z"}}
+# Data Cleaning
+# Checking the null values in the dataset
+df.isnull().sum()
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:38.009636Z","iopub.execute_input":"2021-06-03T11:53:38.010231Z","iopub.status.idle":"2021-06-03T11:53:38.03394Z","shell.execute_reply.started":"2021-06-03T11:53:38.010185Z","shell.execute_reply":"2021-06-03T11:53:38.032762Z"}}
+# Applying median to the balcony and bath column
+from math import floor
+
+balcony_median = float(floor(df.balcony.median()))
+bath_median = float(floor(df.bath.median()))
+
+df.balcony = df.balcony.fillna(balcony_median)
+df.bath = df.bath.fillna(bath_median)
+
+# Checking the null values in the dataset again
+df.isnull().sum()
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:38.035187Z","iopub.execute_input":"2021-06-03T11:53:38.035489Z","iopub.status.idle":"2021-06-03T11:53:38.082242Z","shell.execute_reply.started":"2021-06-03T11:53:38.03546Z","shell.execute_reply":"2021-06-03T11:53:38.081429Z"}}
+# Dropping the rows with null values because the dataset is huge as compared to null values.
+df = df.dropna()
+df.isnull().sum()
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:38.083286Z","iopub.execute_input":"2021-06-03T11:53:38.083693Z","iopub.status.idle":"2021-06-03T11:53:38.11098Z","shell.execute_reply.started":"2021-06-03T11:53:38.083662Z","shell.execute_reply":"2021-06-03T11:53:38.110023Z"}}
+# Converting the size column to bhk
+df['bhk'] = df['size'].apply(lambda x: int(x.split(' ')[0]))
+df = df.drop('size', axis='columns')
+df.groupby('bhk')['bhk'].agg('count')
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:38.112786Z","iopub.execute_input":"2021-06-03T11:53:38.113142Z","iopub.status.idle":"2021-06-03T11:53:38.144957Z","shell.execute_reply.started":"2021-06-03T11:53:38.113111Z","shell.execute_reply":"2021-06-03T11:53:38.143812Z"}}
+
+# Since the total_sqft contains range values such as 1133-1384, lets filter out these values
+def isFloat(x):
+    try:
+        float(x)
+    except:
+        return False
+    return True
+
+# Displaying all the rows that are not integers
+df[~df['total_sqft'].apply(isFloat)]
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:38.147666Z","iopub.execute_input":"2021-06-03T11:53:38.148103Z","iopub.status.idle":"2021-06-03T11:53:38.191572Z","shell.execute_reply.started":"2021-06-03T11:53:38.14807Z","shell.execute_reply":"2021-06-03T11:53:38.190774Z"}}
+# Converting the range values to integer values and removing other types of error
+def convert_sqft_to_num(x):
+    tokens = x.split('-')
+    if len(tokens) == 2:
+        return (float(tokens[0])+float(tokens[1]))/2
+    try:
+        return float(x)
+    except:
+        return None
+    
+df['new_total_sqft'] = df.total_sqft.apply(convert_sqft_to_num)
+df = df.drop('total_sqft', axis='columns')
+df.head()
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:38.192653Z","iopub.execute_input":"2021-06-03T11:53:38.193027Z","iopub.status.idle":"2021-06-03T11:53:38.204209Z","shell.execute_reply.started":"2021-06-03T11:53:38.192998Z","shell.execute_reply":"2021-06-03T11:53:38.203286Z"}}
+# Removing the rows in new_total_sqft column that hase None values
+df.isna().sum()
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:38.205349Z","iopub.execute_input":"2021-06-03T11:53:38.205819Z","iopub.status.idle":"2021-06-03T11:53:38.229482Z","shell.execute_reply.started":"2021-06-03T11:53:38.205773Z","shell.execute_reply":"2021-06-03T11:53:38.22833Z"}}
+df = df.dropna()
+df.isnull().sum()
+
+# %% [markdown]
+# **Feature Engineering**
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:38.232828Z","iopub.execute_input":"2021-06-03T11:53:38.233121Z","iopub.status.idle":"2021-06-03T11:53:38.25497Z","shell.execute_reply.started":"2021-06-03T11:53:38.233093Z","shell.execute_reply":"2021-06-03T11:53:38.253931Z"}}
+# Adding a new column of price_per_sqft
+df1 = df.copy()
+
+# In our dataset the price column is in Lakhs
+df1['price_per_sqft'] = (df1['price']*100000)/df1['new_total_sqft']
+df1.head()
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:38.256431Z","iopub.execute_input":"2021-06-03T11:53:38.256929Z","iopub.status.idle":"2021-06-03T11:53:38.264635Z","shell.execute_reply.started":"2021-06-03T11:53:38.256871Z","shell.execute_reply":"2021-06-03T11:53:38.263501Z"}}
+# Checking unique values of 'location' column
+locations = list(df['site_location'].unique())
+print(len(locations))
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:38.266644Z","iopub.execute_input":"2021-06-03T11:53:38.26708Z","iopub.status.idle":"2021-06-03T11:53:38.290514Z","shell.execute_reply.started":"2021-06-03T11:53:38.267035Z","shell.execute_reply":"2021-06-03T11:53:38.289528Z"}}
+# Removing the extra spaces at the end
+df1.site_location = df1.site_location.apply(lambda x: x.strip())
+
+# Calulating all the unqiue values in 'site_location' column
+location_stats = df1.groupby('site_location')['site_location'].agg('count').sort_values(ascending=False)
+location_stats
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:38.291972Z","iopub.execute_input":"2021-06-03T11:53:38.292316Z","iopub.status.idle":"2021-06-03T11:53:38.301233Z","shell.execute_reply.started":"2021-06-03T11:53:38.292287Z","shell.execute_reply":"2021-06-03T11:53:38.300258Z"}}
+
+# Checking locations with less than 10 values
+print(len(location_stats[location_stats<=10]), len(df1.site_location.unique()))
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:38.302813Z","iopub.execute_input":"2021-06-03T11:53:38.30324Z","iopub.status.idle":"2021-06-03T11:53:38.340431Z","shell.execute_reply.started":"2021-06-03T11:53:38.303194Z","shell.execute_reply":"2021-06-03T11:53:38.339353Z"}}
+# Labelling the locations with less than or equal to 10 occurences to 'other'
+locations_less_than_10 = location_stats[location_stats<=10]
+
+df1.site_location = df1.site_location.apply(lambda x: 'other' if x in locations_less_than_10 else x)
+len(df1.site_location.unique())
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:38.341616Z","iopub.execute_input":"2021-06-03T11:53:38.34187Z","iopub.status.idle":"2021-06-03T11:53:38.354574Z","shell.execute_reply.started":"2021-06-03T11:53:38.341845Z","shell.execute_reply":"2021-06-03T11:53:38.353715Z"}}
+
+# Checking the unique values in 'availability column'
+df1.groupby('availability')['availability'].agg('count').sort_values(ascending=False)
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:38.355637Z","iopub.execute_input":"2021-06-03T11:53:38.355989Z","iopub.status.idle":"2021-06-03T11:53:38.394477Z","shell.execute_reply.started":"2021-06-03T11:53:38.355959Z","shell.execute_reply":"2021-06-03T11:53:38.393751Z"}}
+# Labelling the dates into Not Ready
+dates = df1.groupby('availability')['availability'].agg('count').sort_values(ascending=False)
+
+dates_not_ready = dates[dates<10000]
+df1.availability = df1.availability.apply(lambda x: 'Not Ready' if x in dates_not_ready else x)
+
+len(df1.availability.unique())
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:53:38.395591Z","iopub.execute_input":"2021-06-03T11:53:38.396038Z","iopub.status.idle":"2021-06-03T11:53:38.407093Z","shell.execute_reply.started":"2021-06-03T11:53:38.396Z","shell.execute_reply":"2021-06-03T11:53:38.4063Z"}}
+# Checking the unique values in 'area_type' column
+df1.groupby('area_type')['area_type'].agg('count').sort_values(ascending=False)
+
+# Since the column has only few unique values, we don't perform any operation
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T11:58:58.217485Z","iopub.execute_input":"2021-06-03T11:58:58.217857Z","iopub.status.idle":"2021-06-03T11:58:58.226384Z","shell.execute_reply.started":"2021-06-03T11:58:58.217825Z","shell.execute_reply":"2021-06-03T11:58:58.225201Z"}}
+df2= df1.copy()
+df2= df2.drop('price_per_sqft', axis='columns')
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T12:00:16.680726Z","iopub.execute_input":"2021-06-03T12:00:16.681091Z","iopub.status.idle":"2021-06-03T12:00:16.698107Z","shell.execute_reply.started":"2021-06-03T12:00:16.681054Z","shell.execute_reply":"2021-06-03T12:00:16.697098Z"}}
+# Converting the categorical_value into numerical_values using get_dummies method
+dummy_cols = pd.get_dummies(df2.site_location)
+df2 = pd.concat([df2,dummy_cols], axis='columns')
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T12:00:19.021024Z","iopub.execute_input":"2021-06-03T12:00:19.021631Z","iopub.status.idle":"2021-06-03T12:00:19.036805Z","shell.execute_reply.started":"2021-06-03T12:00:19.021591Z","shell.execute_reply":"2021-06-03T12:00:19.035691Z"}}
+# Converting the categorical_value into numerical_values using get_dummies method
+dummy_cols = pd.get_dummies(df2.availability).drop('Not Ready', axis='columns')
+df2 = pd.concat([df2,dummy_cols], axis='columns')
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T12:00:23.312582Z","iopub.execute_input":"2021-06-03T12:00:23.313368Z","iopub.status.idle":"2021-06-03T12:00:23.329337Z","shell.execute_reply.started":"2021-06-03T12:00:23.31332Z","shell.execute_reply":"2021-06-03T12:00:23.328089Z"}}
+# Converting the categorical_value into numerical_values using get_dummies method
+dummy_cols = pd.get_dummies(df2.area_type).drop('Super built-up  Area', axis='columns')
+df2 = pd.concat([df2,dummy_cols], axis='columns')
+
+# %% [code] {"execution":{"iopub.status.busy":"2021-06-03T12:00:50.629651Z","iopub.execute_input":"2021-06-03T12:00:50.630016Z","iopub.status.idle":"2021-06-03T12:00:50.664587Z","shell.execute_reply.started":"2021-06-03T12:00:50.629986Z","shell.execute_reply":"2021-06-03T12:00:50.663665Z"}}
+
+df2.drop(['area_type','availability','site_location'], axis='columns', inplace=True)
+df2.head(10)
+
+# %% [markdown]
+# # will release second notebook building function using all algorithms upvote it if you like it

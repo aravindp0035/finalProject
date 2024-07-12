@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Success</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        nav {
+            background-color: #444;
+            color: #fff;
+            width: 200px;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            display: block;
+            overflow-x: hidden;
+            padding-top: 20px;
+        }
+        nav a {
+            padding: 10px 20px;
+            text-decoration: none;
+            color: #fff;
+            display: block;
+        }
+        .main-content {
+            margin-left: 200px;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 20px auto;
+            text-align: center;
+        }
+        .container h2 {
+            margin-bottom: 20px;
+        }
+        .container p {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+        .container button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .container button:hover {
+            background-color: #45a049;
+        }
+        .download-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .download-buttons button {
+            background-color: #008CBA;
+        }
+        .download-buttons button:hover {
+            background-color: #007bb5;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-toggle-nav">
+            <button type="button" onclick="toggleNav()">&#9776;</button>
+        </div>
+        <h1>Search Results</h1>
+        <div class="header-logout">
+            <button type="button" onclick="logout()">Logout</button>
+        </div>
+    </header>
+    <nav id="sideNav">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/profile">Profile</a>
+        <a href="/settings">Settings</a>
+        <a href="/messages">Messages</a>
+        <a href="/notifications">Notifications</a>
+        <a href="#" onclick="logout()">Logout</a>
+    </nav>
+    <div class="main-content" id="mainContent">
+        <div class="container">
+            <h2>Classifier Found Successfully!!</h2>
+            <p>Model Name: <span id="modelname"></span></p>
+            <p>Model Version: <span id="modelver"></span></p>
+            <div class="download-buttons">
+                <button id="downloadMLFile" type="button">Download ML File</button>
+                <button id="downloadReviewsFile" type="button">Download Reviews File</button>
+            </div>
+            <button type="button" onclick="redirectToDashboard()">Back to Dashboard</button>
+        </div>
+    </div>
+
+    <script>
+        function toggleNav() {
+            var sideNav = document.getElementById("sideNav");
+            if (sideNav.style.width === "200px") {
+                sideNav.style.width = "0";
+            } else {
+                sideNav.style.width = "200px";
+            }
+        }
+
+        function logout() {
+            console.log("Logging out...");
+            window.location.href = "/superPeerlogin";
+        }
+
+        function redirectToDashboard() {
+            window.location.href = "superPeer/dashboard";
+        }
+
+        function populateSearchSuccess(modelName, modelVersion) {
+            document.getElementById('modelname').innerText = modelName;
+            document.getElementById('modelver').innerText = modelVersion;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var modelName = "Sample Model Name";
+            var modelVersion = "1.0";
+
+            populateSearchSuccess(modelName, modelVersion);
+
+            document.getElementById('downloadMLFile').addEventListener('click', function() {
+                window.location.href = '/downloadMLFile?modelName=' + modelName + '&modelVersion=' + modelVersion;
+            });
+
+            document.getElementById('downloadReviewsFile').addEventListener('click', function() {
+                window.location.href = '/downloadReviewsFile?modelName=' + modelName + '&modelVersion=' + modelVersion;
+            });
+        });
+    </script>
+</body>
+</html>
