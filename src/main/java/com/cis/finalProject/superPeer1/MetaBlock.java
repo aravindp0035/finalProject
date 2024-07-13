@@ -1,6 +1,6 @@
 package com.cis.finalProject.superPeer1;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -13,6 +13,7 @@ public class MetaBlock {
     private String modelID;
     
     public MetaBlock() {
+    	
     }
 
     public MetaBlock(int blockIndex, String prevHash, String hash, String modelID) {
@@ -59,10 +60,17 @@ public class MetaBlock {
     public void saveToJSON(String fileName) {
         ObjectMapper mapper = new ObjectMapper();
         List<MetaBlock> blocks = new ArrayList<>();
-        blocks.add(this);
-
         try {
-            mapper.writeValue(new File(fileName), blocks);
+            // Check if file exists and read existing data
+            File file = new File(fileName);
+            if (file.exists() && file.length() > 0) {
+                blocks = mapper.readValue(file, new TypeReference<List<MetaBlock>>() {});
+            }
+            // Add the current object to the list
+            blocks.add(this);
+            
+            // Write the updated list back to the file
+            mapper.writeValue(file, blocks);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -87,18 +95,47 @@ public class MetaBlock {
     }
     
     public int getSize(String fileName) {
-    	ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = new ObjectMapper();
         try {
             List<MetaBlock> blocks = mapper.readValue(new File(fileName),
                     mapper.getTypeFactory().constructCollectionType(List.class, MetaBlock.class));
 
             return blocks.size();
-            
+
         } catch (IOException e) {
             e.printStackTrace();
         }
         return 0;
     }
+
+    // Method to load MetaBlocks from JSON file
+    public static List<MetaBlock> loadBlocksFromJSON(String fileName) {
+        ObjectMapper mapper = new ObjectMapper();
+        List<MetaBlock> blocks = new ArrayList<>();
+        try {
+            blocks = mapper.readValue(new File(fileName),
+                    mapper.getTypeFactory().constructCollectionType(List.class, MetaBlock.class));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return blocks;
+    }
+
+    // Method to return the latest MetaBlock
+    public static MetaBlock getLatestMetaBlock(String fileName) {
+        List<MetaBlock> blocks = loadBlocksFromJSON(fileName);
+        if (blocks.isEmpty()) {
+            return null;
+        }
+        MetaBlock latestBlock = blocks.get(0);
+        for (MetaBlock block : blocks) {
+            if (block.getBlockIndex() > latestBlock.getBlockIndex()) {
+                latestBlock = block;
+            }
+        }
+        return latestBlock;
+    }
+
 
     @Override
     public String toString() {

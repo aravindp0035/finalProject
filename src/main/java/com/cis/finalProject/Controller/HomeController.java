@@ -25,7 +25,7 @@ public class HomeController {
     @GetMapping("/regularPeer/dashboard")
     public String dashboard1() {
     
-    	return "regularPeer/dashboard";
+    	return "regularPeer/rpdashboard";
     }
     @GetMapping("/regularPeerLogin")
     public String regularPeerlogin() {

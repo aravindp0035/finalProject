@@ -9,4 +9,6 @@ public interface BlockchainInterface extends Remote{
 	byte[] ExtractReviewsfile(String modelID) throws RemoteException;
 	void Search(String modelID) throws RemoteException;
 	void updateReviewFile(String modelID, String text) throws RemoteException;
+	String getRequester();
+	
 }

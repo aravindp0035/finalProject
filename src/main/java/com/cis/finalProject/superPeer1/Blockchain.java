@@ -7,6 +7,8 @@ import java.io.InputStream;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
+import java.rmi.server.RemoteServer;
+import java.rmi.server.ServerNotActiveException;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -29,14 +31,12 @@ public class Blockchain extends UnicastRemoteObject implements BlockchainInterfa
 
 	
     MetaBlock mb;
-    
-    
-    
-    
+    Transaction tr;
     private static final String url = "jdbc:mysql://localhost:3306/blockchain_db";
     private static final String user = "root";
     private static final String password = "Aravind@123";
     private static final String fileName = "metablock.json";
+    private static final String tfileName = "metablock.json";
     
     protected Blockchain() throws RemoteException {
         super();
@@ -53,24 +53,18 @@ public class Blockchain extends UnicastRemoteObject implements BlockchainInterfa
 		return mb.getSize(fileName);
 	}
 	
-	
-	public Block getLatestBlock() {
-		if(blockchain.isEmpty()) {
-			return null;
-		}
-        return blockchain.get(blockchain.size() - 1);
-    }
-	
+
 	@Override
 	public void createNewBlock(String modelID, MultipartFile mlfile, MultipartFile reviewfile) throws RemoteException {
-		
-    	Block latestBlock = getLatestBlock();
+		System.out.println("Hi");
+    	MetaBlock latestBlock = MetaBlock.getLatestMetaBlock(fileName);
+    	
     	int newIndex=0;
     	String newPrevHash="0";
-    	if(latestBlock != null) {
-    		
-    	newIndex = latestBlock.getIndex() + 1;
+    	if(latestBlock!=null) {
+    	newIndex = latestBlock.getBlockIndex() + 1;
     	newPrevHash = latestBlock.getHash();
+
     	}
     	
 		Block newBlock = new Block(newIndex, newPrevHash, modelID);
@@ -79,6 +73,9 @@ public class Blockchain extends UnicastRemoteObject implements BlockchainInterfa
 		System.out.println("Block created with prev hash: "+newPrevHash+", Block Hash: "+newBlock.getHash()+", Model ID: "+ modelID);
 		mb.saveToJSON(fileName);
 		System.out.println("MetaBlock is updated");
+		tr = new Transaction(getRequester(),"superPeer1","Block Created",modelID);
+		tr.saveToJSON(tfileName);
+		System.out.println("Transaction created");
     	String hash = mb.retrieveHashByModelID(fileName, modelID);
     	
         try (Connection connection = DriverManager.getConnection(url, user, password);
@@ -215,6 +212,16 @@ public class Blockchain extends UnicastRemoteObject implements BlockchainInterfa
 	    
 		
 	}
+	
+	@Override
+    public String getRequester() throws RemoteException {
+        try {
+            return RemoteServer.getClientHost();
+        } catch (ServerNotActiveException e) {
+            e.printStackTrace();
+            return "Unknown";
+        }
+    }
     
 	
 	public static void main(String[] args) {
@@ -223,10 +230,7 @@ public class Blockchain extends UnicastRemoteObject implements BlockchainInterfa
             LocateRegistry.createRegistry(1099);
             Blockchain server = new Blockchain();
             Naming.rebind("rmi://localhost:1099/Blockchain", server);
-            String hash ="f0dfa0a1a9a6ee466091b646ff953654374f094ae35968ecd6a47f2064f4f6d4";
-            MetaBlock mb = new MetaBlock(0, "0",hash,"AparV2017");
             
-            mb.saveToJSON(fileName);
             
             System.out.println("Blockchain Server is ready.");
         } catch (Exception e) {

@@ -23,13 +23,14 @@ public class spformController {
 	public void blockchainSize(Model model) {
 		int size = cs.bcSize();
 		model.addAttribute("size", size);
+		System.out.println("Hi111");
 		
 	}
 	
 	
 
 	 @PostMapping("/createBlock")
-	    public void createBlock(@RequestParam("dropdown") String dropdown,@RequestParam("modelver") String modelver, @RequestParam("mlfileUpload") MultipartFile mlfile, @RequestParam("reviewfileUpload") MultipartFile reviewfile, Model model) {
+	    public String createBlock(@RequestParam("dropdown") String dropdown,@RequestParam("modelver") String modelver, @RequestParam("mlfileUpload") MultipartFile mlfile, @RequestParam("reviewfileUpload") MultipartFile reviewfile, Model model) {
 	        // Handle form 1 submission
 	        model.addAttribute("modelname", dropdown);
 	        model.addAttribute("modelver", modelver);
@@ -38,11 +39,11 @@ public class spformController {
 	        model.addAttribute("success", true);
 	        
 	        String modelID = dropdown.substring(0, 4)+modelver;
-	       
+	        System.out.println(modelID);
 	        cs.createNewBlock(modelID, mlfile, reviewfile);
+	        System.out.println(cs.bcSize());
 	        
-	        
-//	        return "dashboard";
+	        return "superPeer/dashboard";
 	        
 	    }
 	 

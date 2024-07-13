@@ -1,6 +1,8 @@
 package com.cis.finalProject.regularPeer;
 
 
+import java.rmi.RemoteException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -9,6 +11,10 @@ public class rpClientService {
 
     @Autowired
     private BlockchainInterface blockchain;
+    
+    public rpClientService() throws RemoteException {
+    	System.out.println(blockchain.getRequester());
+    }
 
     public void Search(String modelID) {
         try {

@@ -37,7 +37,7 @@
 
             <div class="success-container" id="successContainer1" style="display:none;">
                 <h2>Block Created Successfully!!</h2>
-                <p>Model Name: <span id="modelname1"></span></p>
+                <p>Model Name: <span id="modelname1" ></span></p>
                 <p>Model Version: <span id="modelver1"></span></p>
                 <p>Model File: <span id="mlfileName1"></span></p>
                 <p>Review File: <span id="reviewfileName1"></span></p>
@@ -226,35 +226,35 @@
         }
 
         document.getElementById('createBlock').addEventListener('submit', function(event) {
-            event.preventDefault(); // Prevent form submission
+            //event.preventDefault(); // Prevent form submission
             setTimeout(function() {
                 showSuccessContainer('successContainer1');
             }, 1000); // Simulate 1 second delay
         });
 
         document.getElementById('addReviews').addEventListener('submit', function(event) {
-            event.preventDefault(); // Prevent form submission
+            //event.preventDefault(); // Prevent form submission
             setTimeout(function() {
                 showSuccessContainer('successContainer2');
             }, 1000); // Simulate 1 second delay
         });
 
         document.getElementById('extractMLfile').addEventListener('submit', function(event) {
-            event.preventDefault(); // Prevent form submission
+            //event.preventDefault(); // Prevent form submission
             setTimeout(function() {
                 showSuccessContainer('successContainer3');
             }, 1000); // Simulate 1 second delay
         });
 
         document.getElementById('extractReviews').addEventListener('submit', function(event) {
-            event.preventDefault(); // Prevent form submission
+            //event.preventDefault(); // Prevent form submission
             setTimeout(function() {
                 showSuccessContainer('successContainer4');
             }, 1000); // Simulate 1 second delay
         });
 
         document.getElementById('searchClassifier').addEventListener('submit', function(event) {
-            event.preventDefault(); // Prevent form submission
+            //event.preventDefault(); // Prevent form submission
             setTimeout(function() {
                 window.location.href="/searchSuccess";
             }, 1000); // Simulate 1 second delay
